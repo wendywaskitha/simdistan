@@ -23,7 +23,29 @@ class KomoditasRequest extends FormRequest
         $id = $this->route('komodita'); // Laravel route resource model binding untuk komoditas
 
         return [
-            'kategori_komoditas_id' => ['required', 'exists:kategori_komoditas,id'],
+            'kategori_komoditas_id' => [
+                'required',
+                'exists:kategori_komoditas,id',
+                function ($attribute, $value, $fail) {
+                    $user = auth()->user();
+                    if ($user->hasRole('Super Admin')) {
+                        return;
+                    }
+                    
+                    $allowedCategoryIds = [];
+                    if ($user->hasRole('Tanaman Pangan')) {
+                        $allowedCategoryIds = \App\Models\KategoriKomoditas::where('nama', 'Tanaman Pangan')->pluck('id')->toArray();
+                    } elseif ($user->hasRole('Hortikultura')) {
+                        $allowedCategoryIds = \App\Models\KategoriKomoditas::where('nama', 'LIKE', '%Hortikultura%')->pluck('id')->toArray();
+                    } elseif ($user->hasRole('Perkebunan')) {
+                        $allowedCategoryIds = \App\Models\KategoriKomoditas::where('nama', 'Perkebunan')->pluck('id')->toArray();
+                    }
+                    
+                    if (!in_array($value, $allowedCategoryIds)) {
+                        $fail('Kategori komoditas yang dipilih tidak valid untuk role Anda.');
+                    }
+                }
+            ],
             'nama' => [
                 'required',
                 'string',

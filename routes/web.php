@@ -46,9 +46,12 @@ Route::middleware('auth')->group(function () {
         Route::resource('kecamatans', KecamatanController::class);
         Route::resource('desas', DesaController::class);
         Route::resource('kategori-komoditas', KategoriKomoditasController::class);
-        Route::resource('komoditas', KomoditasController::class);
         Route::resource('varietas', VarietasController::class);
         Route::resource('satuans', SatuanController::class);
+    });
+
+    Route::middleware('role:Super Admin|Tanaman Pangan|Hortikultura|Perkebunan')->group(function () {
+        Route::resource('komoditas', KomoditasController::class);
     });
 
     // Rute Baru Penyuluhan & BPP

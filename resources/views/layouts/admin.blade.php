@@ -337,9 +337,18 @@
                 <a href="{{ route('kategori-komoditas.index') }}" class="list-group-item list-group-item-action {{ Route::is('kategori-komoditas.*') ? 'active' : '' }}">
                     <i class="bi bi-tags-fill"></i> Kategori Komoditas
                 </a>
+                @endrole
+
+                @hasanyrole('Super Admin|Tanaman Pangan|Hortikultura|Perkebunan')
+                @if(!auth()->user()->hasRole('Super Admin'))
+                <div class="sidebar-section-title">Master Data</div>
+                @endif
                 <a href="{{ route('komoditas.index') }}" class="list-group-item list-group-item-action {{ Route::is('komoditas.*') ? 'active' : '' }}">
                     <i class="bi bi-egg-fried"></i> Data Komoditas
                 </a>
+                @endhasanyrole
+
+                @role('Super Admin')
                 <a href="{{ route('varietas.index') }}" class="list-group-item list-group-item-action {{ Route::is('varietas.*') ? 'active' : '' }}">
                     <i class="bi bi-flower2"></i> Data Varietas
                 </a>

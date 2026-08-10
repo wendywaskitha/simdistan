@@ -21,18 +21,49 @@ class KomoditasController extends Controller
         $this->kategoriService = $kategoriService;
     }
 
+    private function getAllowedCategoryIds()
+    {
+        $user = auth()->user();
+        if ($user->hasRole('Super Admin')) {
+            return null; // All
+        }
+        if ($user->hasRole('Tanaman Pangan')) {
+            return \App\Models\KategoriKomoditas::where('nama', 'Tanaman Pangan')->pluck('id')->toArray();
+        }
+        if ($user->hasRole('Hortikultura')) {
+            return \App\Models\KategoriKomoditas::where('nama', 'LIKE', '%Hortikultura%')->pluck('id')->toArray();
+        }
+        if ($user->hasRole('Perkebunan')) {
+            return \App\Models\KategoriKomoditas::where('nama', 'Perkebunan')->pluck('id')->toArray();
+        }
+        return []; // No access
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
+        $allowedCategoryIds = $this->getAllowedCategoryIds();
+
         if ($request->ajax()) {
+            $query = \App\Models\Komoditas::with('kategori');
+            
+            if ($allowedCategoryIds !== null) {
+                $query->whereIn('kategori_komoditas_id', $allowedCategoryIds);
+            }
+            
             $kategoriId = $request->get('kategori_id');
             if ($kategoriId) {
-                $data = \App\Models\Komoditas::where('kategori_komoditas_id', $kategoriId)->with('kategori')->get();
-            } else {
-                $data = $this->komoditasService->getAllKomoditas();
+                if ($allowedCategoryIds === null || in_array($kategoriId, $allowedCategoryIds)) {
+                    $query->where('kategori_komoditas_id', $kategoriId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             }
+
+            $data = $query->get();
+
             return DataTables::of($data)
                 ->addIndexColumn()
                 ->addColumn('kategori_nama', function($row) {
@@ -59,7 +90,11 @@ class KomoditasController extends Controller
                 ->make(true);
         }
 
-        $kategoris = $this->kategoriService->getAllKategori();
+        if ($allowedCategoryIds !== null) {
+            $kategoris = \App\Models\KategoriKomoditas::whereIn('id', $allowedCategoryIds)->get();
+        } else {
+            $kategoris = $this->kategoriService->getAllKategori();
+        }
         return view('master.komoditas.index', compact('kategoris'));
     }
 
@@ -68,7 +103,13 @@ class KomoditasController extends Controller
      */
     public function create(): View
     {
-        $kategoris = $this->kategoriService->getAllKategori()->pluck('nama', 'id')->toArray();
+        $allowedCategoryIds = $this->getAllowedCategoryIds();
+        
+        if ($allowedCategoryIds !== null) {
+            $kategoris = \App\Models\KategoriKomoditas::whereIn('id', $allowedCategoryIds)->pluck('nama', 'id')->toArray();
+        } else {
+            $kategoris = $this->kategoriService->getAllKategori()->pluck('nama', 'id')->toArray();
+        }
         return view('master.komoditas.create', compact('kategoris'));
     }
 
@@ -93,7 +134,16 @@ class KomoditasController extends Controller
             abort(404);
         }
 
-        $kategoris = $this->kategoriService->getAllKategori()->pluck('nama', 'id')->toArray();
+        $allowedCategoryIds = $this->getAllowedCategoryIds();
+        if ($allowedCategoryIds !== null && !in_array($komoditas->kategori_komoditas_id, $allowedCategoryIds)) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if ($allowedCategoryIds !== null) {
+            $kategoris = \App\Models\KategoriKomoditas::whereIn('id', $allowedCategoryIds)->pluck('nama', 'id')->toArray();
+        } else {
+            $kategoris = $this->kategoriService->getAllKategori()->pluck('nama', 'id')->toArray();
+        }
         return view('master.komoditas.edit', compact('komoditas', 'kategoris'));
     }
 
@@ -102,6 +152,16 @@ class KomoditasController extends Controller
      */
     public function update(KomoditasRequest $request, int $id): RedirectResponse
     {
+        $komoditas = $this->komoditasService->getKomoditasById($id);
+        if (!$komoditas) {
+            abort(404);
+        }
+
+        $allowedCategoryIds = $this->getAllowedCategoryIds();
+        if ($allowedCategoryIds !== null && !in_array($komoditas->kategori_komoditas_id, $allowedCategoryIds)) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $this->komoditasService->updateKomoditas($id, $request->validated());
 
         return redirect()->route('komoditas.index')
@@ -113,6 +173,16 @@ class KomoditasController extends Controller
      */
     public function destroy(int $id): RedirectResponse
     {
+        $komoditas = $this->komoditasService->getKomoditasById($id);
+        if (!$komoditas) {
+            abort(404);
+        }
+
+        $allowedCategoryIds = $this->getAllowedCategoryIds();
+        if ($allowedCategoryIds !== null && !in_array($komoditas->kategori_komoditas_id, $allowedCategoryIds)) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $this->komoditasService->deleteKomoditas($id);
 
         return redirect()->route('komoditas.index')

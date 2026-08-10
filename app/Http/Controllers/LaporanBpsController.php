@@ -121,11 +121,11 @@ class LaporanBpsController extends Controller
         $kecamatanId = $request->get('kecamatan_id');
         $formType    = $request->get('form_type');
 
-        $kategori   = KategoriKomoditas::where('nama', 'Hortikultura')->first();
+        $kategoriIds = KategoriKomoditas::where('nama', 'LIKE', '%Hortikultura%')->pluck('id')->toArray();
         $kecamatans = Kecamatan::orderBy('nama')->get();
 
         $query = LaporanProduksi::with(['kecamatan', 'komoditas', 'satuan'])
-            ->where('kategori_komoditas_id', $kategori->id)
+            ->whereIn('kategori_komoditas_id', $kategoriIds)
             ->where('tahun', $tahun);
         if ($kecamatanId) $query->where('kecamatan_id', $kecamatanId);
         if ($formType)    $query->where('form_type', $formType);
@@ -143,10 +143,10 @@ class LaporanBpsController extends Controller
         $tahun       = intval($request->get('tahun', date('Y')));
         $kecamatanId = $request->get('kecamatan_id');
         $formType    = $request->get('form_type');
-        $kategori    = KategoriKomoditas::where('nama', 'Hortikultura')->first();
+        $kategoriIds = KategoriKomoditas::where('nama', 'LIKE', '%Hortikultura%')->pluck('id')->toArray();
 
         $query = LaporanProduksi::with(['kecamatan', 'komoditas', 'satuan'])
-            ->where('kategori_komoditas_id', $kategori->id)
+            ->whereIn('kategori_komoditas_id', $kategoriIds)
             ->where('tahun', $tahun);
         if ($kecamatanId) $query->where('kecamatan_id', $kecamatanId);
         if ($formType)    $query->where('form_type', $formType);
@@ -162,10 +162,10 @@ class LaporanBpsController extends Controller
         $tahun       = intval($request->get('tahun', date('Y')));
         $kecamatanId = $request->get('kecamatan_id');
         $formType    = $request->get('form_type');
-        $kategori    = KategoriKomoditas::where('nama', 'Hortikultura')->first();
+        $kategoriIds = KategoriKomoditas::where('nama', 'LIKE', '%Hortikultura%')->pluck('id')->toArray();
 
         $query = LaporanProduksi::with(['kecamatan', 'komoditas', 'satuan'])
-            ->where('kategori_komoditas_id', $kategori->id)
+            ->whereIn('kategori_komoditas_id', $kategoriIds)
             ->where('tahun', $tahun);
         if ($kecamatanId) $query->where('kecamatan_id', $kecamatanId);
         if ($formType)    $query->where('form_type', $formType);
