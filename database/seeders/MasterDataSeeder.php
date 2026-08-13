@@ -353,5 +353,76 @@ class MasterDataSeeder extends Seeder
                 'deskripsi' => 'Alat mesin pertanian bantuan jenis ' . $nama
             ]);
         }
+
+        // 12. Seed Bantuan Benih & Bibit
+        $poktans = KelompokTani::take(3)->get();
+        if ($poktans->count() >= 3) {
+            // Benih Pangan (Padi Sawah)
+            $padi = Komoditas::where('nama', 'Padi Sawah')->first();
+            $varietas = $padi ? $padi->varietas()->first() : null;
+            if ($padi) {
+                \App\Models\BantuanBenihPangan::firstOrCreate(
+                    [
+                        'kelompok_tani_id' => $poktans[0]->id,
+                        'komoditas_id' => $padi->id,
+                        'tahun_bantuan' => 2026
+                    ],
+                    [
+                        'varietas_id' => $varietas ? $varietas->id : null,
+                        'jumlah_bantuan' => 500,
+                        'satuan' => 'Kg',
+                        'sumber_dana' => 'APBN',
+                        'keterangan' => 'Bantuan benih padi untuk musim tanam gadu.'
+                    ]
+                );
+            }
+
+            // Bibit Horti (Bawang Merah)
+            $bawang = Komoditas::where('nama', 'Bawang Merah')->first();
+            if ($bawang) {
+                \App\Models\BantuanBibitHorti::firstOrCreate(
+                    [
+                        'kelompok_tani_id' => $poktans[1]->id,
+                        'komoditas_id' => $bawang->id,
+                        'tahun_bantuan' => 2026
+                    ],
+                    [
+                        'jumlah_bantuan' => 200,
+                        'satuan' => 'Kg',
+                        'sumber_dana' => 'APBD Kabupaten',
+                        'keterangan' => 'Bantuan bibit bawang merah unggulan daerah.'
+                    ]
+                );
+            }
+
+            // Bibit Perkebunan (Kakao)
+            $kakao = Komoditas::where('nama', 'Kakao')->first();
+            if (!$kakao) {
+                $kategoriPerkebunan = KategoriKomoditas::where('nama', 'like', '%Perkebunan%')->first();
+                if ($kategoriPerkebunan) {
+                    $kakao = Komoditas::firstOrCreate([
+                        'kategori_komoditas_id' => $kategoriPerkebunan->id,
+                        'nama' => 'Kakao',
+                        'periode' => 'Semesteran',
+                        'durasi_panen_bulan' => 6
+                    ]);
+                }
+            }
+            if ($kakao) {
+                \App\Models\BantuanBibitPerkebunan::firstOrCreate(
+                    [
+                        'kelompok_tani_id' => $poktans[2]->id,
+                        'komoditas_id' => $kakao->id,
+                        'tahun_bantuan' => 2025
+                    ],
+                    [
+                        'jumlah_bantuan' => 1000,
+                        'satuan' => 'Batang',
+                        'sumber_dana' => 'DAK',
+                        'keterangan' => 'Bantuan bibit kakao untuk perluasan lahan.'
+                    ]
+                );
+            }
+        }
     }
 }

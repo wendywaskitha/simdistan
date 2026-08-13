@@ -263,6 +263,9 @@
                 <a href="{{ route('bpps.index') }}" class="list-group-item list-group-item-action {{ Route::is('bpps.*') ? 'active' : '' }}">
                     <i class="bi bi-building-fill-gear"></i> Data BPP
                 </a>
+                <a href="{{ route('penerima-bantuan.index') }}" class="list-group-item list-group-item-action {{ Route::is('penerima-bantuan.*') ? 'active' : '' }}">
+                    <i class="bi bi-gift-fill"></i> Penerima Bantuan
+                </a>
                 @endcan
 
                 <!-- Section Produksi -->
@@ -271,20 +274,29 @@
                 @endif
                 
                 @can('akses tanaman pangan')
-                <a href="{{ route('tanaman-pangan.index') }}" class="list-group-item list-group-item-action {{ Route::is('tanaman-pangan.*') ? 'active' : '' }}">
+                <a href="{{ route('tanaman-pangan.index') }}" class="list-group-item list-group-item-action {{ Route::is('tanaman-pangan.index') ? 'active' : '' }}">
                     <i class="bi bi-cone-striped"></i> Tanaman Pangan
+                </a>
+                <a href="{{ route('bantuan-benih-pangan.index') }}" class="list-group-item list-group-item-action {{ Route::is('bantuan-benih-pangan.*') ? 'active' : '' }} ps-4 small">
+                    <i class="bi bi-gift-fill"></i> Kelola Bantuan Benih
                 </a>
                 @endcan
                 
                 @can('akses hortikultura')
-                <a href="{{ route('hortikultura.index') }}" class="list-group-item list-group-item-action {{ Route::is('hortikultura.*') ? 'active' : '' }}">
+                <a href="{{ route('hortikultura.index') }}" class="list-group-item list-group-item-action {{ Route::is('hortikultura.index') ? 'active' : '' }}">
                     <i class="bi bi-tree-fill"></i> Hortikultura
+                </a>
+                <a href="{{ route('bantuan-bibit-horti.index') }}" class="list-group-item list-group-item-action {{ Route::is('bantuan-bibit-horti.*') ? 'active' : '' }} ps-4 small">
+                    <i class="bi bi-gift-fill"></i> Kelola Bantuan Bibit
                 </a>
                 @endcan
                 
                 @can('akses perkebunan')
-                <a href="{{ route('perkebunan.index') }}" class="list-group-item list-group-item-action {{ Route::is('perkebunan.*') ? 'active' : '' }}">
+                <a href="{{ route('perkebunan.index') }}" class="list-group-item list-group-item-action {{ Route::is('perkebunan.index') ? 'active' : '' }}">
                     <i class="bi bi-tree-fill"></i> Perkebunan
+                </a>
+                <a href="{{ route('bantuan-bibit-perkebunan.index') }}" class="list-group-item list-group-item-action {{ Route::is('bantuan-bibit-perkebunan.*') ? 'active' : '' }} ps-4 small">
+                    <i class="bi bi-gift-fill"></i> Kelola Bantuan Bibit
                 </a>
                 @endcan
 

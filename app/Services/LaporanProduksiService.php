@@ -78,7 +78,6 @@ class LaporanProduksiService
                         $totalTanam += floatval($m['luas_tanam'] ?? 0);
                         $totalPanen += floatval($m['luas_panen'] ?? 0);
                         $totalProduksi += floatval($m['produksi'] ?? 0);
-                        $totalLahan += floatval($m['luas_lahan'] ?? 0);
                     }
                 } else {
                     $totalTanam = floatval($komoditasData['luas_tanam'] ?? 0);
@@ -109,7 +108,6 @@ class LaporanProduksiService
                         'form_type'             => $komoditasData['form_type'] ?? null,
                         'produktivitas'         => $produktivitas,
                         'produksi'              => $totalProduksi,
-                        'luas_lahan'            => $totalLahan,
                         // SPH-SBS & SPH-TBF fields
                         'luas_tanam_akhir_bulan_lalu' => floatval($komoditasData['luas_tanam_akhir_bulan_lalu'] ?? 0),
                         'luas_panen_belum_habis'      => floatval($komoditasData['luas_panen_belum_habis'] ?? 0),
@@ -135,6 +133,7 @@ class LaporanProduksiService
                         'wujud_produksi'              => $komoditasData['wujud_produksi'] ?? null,
                         'jumlah_petani_pemilik'       => intval($komoditasData['jumlah_petani_pemilik'] ?? 0),
                         'jumlah_petani_bmu'           => intval($komoditasData['jumlah_petani_bmu'] ?? 0),
+                        'keterangan_selisih_panen'    => $komoditasData['keterangan_selisih_panen'] ?? null,
                     ]
                 );
 
@@ -148,7 +147,6 @@ class LaporanProduksiService
                             'luas_panen' => floatval($m['luas_panen'] ?? 0),
                             'produktivitas' => floatval($m['produktivitas'] ?? 0),
                             'produksi' => floatval($m['produksi'] ?? 0),
-                            'luas_lahan' => floatval($m['luas_lahan'] ?? 0),
                         ]);
                     }
                 }
@@ -181,7 +179,6 @@ class LaporanProduksiService
                     $totalTanam += floatval($m['luas_tanam'] ?? 0);
                     $totalPanen += floatval($m['luas_panen'] ?? 0);
                     $totalProduksi += floatval($m['produksi'] ?? 0);
-                    $totalLahan += floatval($m['luas_lahan'] ?? 0);
                 }
             } else {
                 $totalTanam = floatval($komoditasData['luas_tanam'] ?? 0);
@@ -204,7 +201,6 @@ class LaporanProduksiService
                 'form_type'      => $komoditasData['form_type'] ?? null,
                 'produktivitas'  => $produktivitas,
                 'produksi'       => $totalProduksi,
-                'luas_lahan'     => $totalLahan,
                 // SPH-SBS & SPH-TBF fields
                 'luas_tanam_akhir_bulan_lalu' => floatval($komoditasData['luas_tanam_akhir_bulan_lalu'] ?? 0),
                 'luas_panen_belum_habis'      => floatval($komoditasData['luas_panen_belum_habis'] ?? 0),
@@ -230,6 +226,7 @@ class LaporanProduksiService
                 'wujud_produksi'              => $komoditasData['wujud_produksi'] ?? null,
                 'jumlah_petani_pemilik'       => intval($komoditasData['jumlah_petani_pemilik'] ?? 0),
                 'jumlah_petani_bmu'           => intval($komoditasData['jumlah_petani_bmu'] ?? 0),
+                'keterangan_selisih_panen'    => $komoditasData['keterangan_selisih_panen'] ?? null,
             ]);
 
             if ($updated && $isTanamanPangan && isset($komoditasData['mingguans'])) {
@@ -241,7 +238,6 @@ class LaporanProduksiService
                         'luas_panen' => floatval($m['luas_panen'] ?? 0),
                         'produktivitas' => floatval($m['produktivitas'] ?? 0),
                         'produksi' => floatval($m['produksi'] ?? 0),
-                        'luas_lahan' => floatval($m['luas_lahan'] ?? 0),
                     ]);
                 }
             }

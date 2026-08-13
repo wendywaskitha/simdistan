@@ -50,6 +50,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'wujud_produksi',
     'jumlah_petani_pemilik',
     'jumlah_petani_bmu',
+    'keterangan_selisih_panen',
 ])]
 class LaporanProduksi extends Model
 {

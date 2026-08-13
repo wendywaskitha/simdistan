@@ -278,6 +278,7 @@ class LaporanProduksiController extends Controller
             'tahun' => ['required', 'integer'],
             'bulan' => ['required', 'integer', 'between:1,12'],
             'satuan_id' => ['required', 'exists:satuans,id'],
+            'keterangan_selisih_panen' => ['nullable', 'string'],
             'mingguans' => ['required', 'array', 'size:4'],
             'mingguans.*.luas_tanam' => ['required', 'numeric', 'min:0'],
             'mingguans.*.luas_panen' => ['required', 'numeric', 'min:0'],
@@ -316,15 +317,20 @@ class LaporanProduksiController extends Controller
             $existingLaporan ? $existingLaporan->id : null
         );
 
-        if ($result['is_tanaman_pangan'] && $totalPanen > $result['max_panen']) {
+        if ($result['is_tanaman_pangan'] && $totalPanen > $result['max_panen'] && empty(trim($request->keterangan_selisih_panen ?? ''))) {
             return redirect()->back()
                 ->withInput()
                 ->withErrors([
-                    'total_luas_panen' => "Total Luas Panen ({$totalPanen} Ha) tidak boleh melebihi Luas Tanam pada {$result['durasi']} bulan sebelumnya (Maksimal: " . number_format($result['max_panen'], 2) . " Ha)."
+                    'keterangan_selisih_panen' => "Keterangan alasan selisih wajib diisi karena total Luas Panen ({$totalPanen} Ha) melebihi Luas Tanam pada {$result['durasi']} bulan sebelumnya (Maksimal: " . number_format($result['max_panen'], 2) . " Ha)."
                 ]);
         }
 
-        DB::transaction(function() use ($request, $kecamatanId, $komoditasId, $tahun, $bulan, $komoditas, $totalTanam, $totalPanen) {
+        $keteranganSelisih = $request->keterangan_selisih_panen;
+        if ($result['is_tanaman_pangan'] && $totalPanen <= $result['max_panen']) {
+            $keteranganSelisih = null;
+        }
+
+        DB::transaction(function() use ($request, $kecamatanId, $komoditasId, $tahun, $bulan, $komoditas, $totalTanam, $totalPanen, $keteranganSelisih) {
             $totalProduksi = 0;
 
             foreach ($request->mingguans as $m) {
@@ -347,6 +353,7 @@ class LaporanProduksiController extends Controller
                     'luas_panen' => $totalPanen,
                     'produktivitas' => $produktivitas,
                     'produksi' => $totalProduksi,
+                    'keterangan_selisih_panen' => $keteranganSelisih,
                 ]
             );
 

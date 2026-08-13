@@ -1,13 +1,13 @@
 @extends('layouts.admin')
-@section('title', 'Laporan BPS – Perkebunan')
+@section('title', 'Laporan – Perkebunan')
 
 @section('content')
-<x-breadcrumb :items="[['label'=>'Laporan BPS','url'=>route('laporan-bps.index')],['label'=>'Perkebunan']]" />
+<x-breadcrumb :items="[['label'=>'Laporan','url'=>route('laporan-bps.index')],['label'=>'Perkebunan']]" />
 
 <div class="card custom-card border-0 p-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h5 class="fw-bold mb-1"><i class="bi bi-tree me-2 text-warning"></i>Laporan BPS — Perkebunan {{ $tahun }}</h5>
+            <h5 class="fw-bold mb-1"><i class="bi bi-tree me-2 text-warning"></i>Laporan — Perkebunan {{ $tahun }}</h5>
             <p class="text-muted small mb-0">Laporan luas TBM, TM, TTM, produksi, dan jumlah petani.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">

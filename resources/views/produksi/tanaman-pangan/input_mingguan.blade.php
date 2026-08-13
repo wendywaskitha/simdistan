@@ -68,7 +68,6 @@
                 <thead class="table-light small fw-bold">
                     <tr>
                         <th width="15%">Minggu Ke-</th>
-                        <th>Luas Lahan (Ha)</th>
                         <th>Luas Tanam (Ha)</th>
                         <th>Luas Panen (Ha)</th>
                         <th>Produktivitas</th>
@@ -82,13 +81,6 @@
                         @endphp
                         <tr class="minggu-row">
                             <td class="fw-bold text-secondary">Minggu {{ $i + 1 }}</td>
-                            <td>
-                                <input type="number" step="0.01" min="0" 
-                                       name="mingguans[{{ $i }}][luas_lahan]" 
-                                       value="{{ $detail['luas_lahan'] ?? '' }}"
-                                       class="form-control lahan-input text-end border-0 shadow-none bg-transparent" 
-                                       placeholder="0.00" required>
-                            </td>
                             <td>
                                 <input type="number" step="0.01" min="0" 
                                        name="mingguans[{{ $i }}][luas_tanam]" 
@@ -123,9 +115,6 @@
                     <tr class="table-warning fw-bold">
                         <td>Total Bulanan</td>
                         <td>
-                            <input type="text" id="totalLahan" class="form-control-plaintext text-end fw-bold" readonly value="0.00 Ha">
-                        </td>
-                        <td>
                             <input type="text" id="totalTanam" class="form-control-plaintext text-end fw-bold" readonly value="0.00 Ha">
                         </td>
                         <td>
@@ -140,6 +129,16 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Wrapper Keterangan Selisih Luas Panen (Dinamis) -->
+        <div class="card border border-warning rounded-3 p-4 bg-light shadow-sm mb-4" id="keteranganPanenWrapper" style="display: none;">
+            <div class="d-flex align-items-center mb-3">
+                <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-2"></i>
+                <h6 class="fw-bold mb-0 text-dark">Keterangan Alasan Selisih Luas Panen</h6>
+            </div>
+            <p class="text-muted small">Total Luas Panen yang diinputkan melebihi batas maksimal kapasitas tanam pada durasi panen komoditas ini sebelumnya (Maksimal: <strong class="text-danger">{{ number_format($maxPanen, 2) }} Ha</strong>). Mohon berikan keterangan alasan mengapa hal ini bisa terjadi.</p>
+            <textarea name="keterangan_selisih_panen" id="keteranganSelisihPanen" class="form-control" rows="3" placeholder="Masukkan alasan selisih luas panen di sini...">{{ $laporan ? $laporan->keterangan_selisih_panen : '' }}</textarea>
         </div>
 
         <div class="d-flex gap-2">
@@ -157,6 +156,8 @@
     };
 
     $(document).ready(function() {
+        const maxPanen = parseFloat("{{ $maxPanen }}") || 0;
+
         const calculateRow = (row) => {
             const panen = parseFloat(row.find('.panen-input').val()) || 0;
             const prodv = parseFloat(row.find('.prodv-input').val()) || 0;
@@ -165,7 +166,6 @@
         };
 
         const calculateTotals = () => {
-            let totalLahan = 0;
             let totalTanam = 0;
             let totalPanen = 0;
             let totalProduksi = 0;
@@ -173,22 +173,33 @@
             $('.minggu-row').each(function() {
                 calculateRow($(this));
                 
-                totalLahan += parseFloat($(this).find('.lahan-input').val()) || 0;
                 totalTanam += parseFloat($(this).find('.tanam-input').val()) || 0;
                 totalPanen += parseFloat($(this).find('.panen-input').val()) || 0;
                 totalProduksi += parseFloat($(this).find('.prod-input').val()) || 0;
             });
 
-            $('#totalLahan').val(totalLahan.toFixed(2) + ' Ha');
             $('#totalTanam').val(totalTanam.toFixed(2) + ' Ha');
             $('#totalPanen').val(totalPanen.toFixed(2) + ' Ha');
             
             const totalProdv = totalPanen > 0 ? (totalProduksi / totalPanen) : 0;
             $('#totalProduktivitas').val(totalProdv.toFixed(2));
             $('#totalProduksi').val(totalProduksi.toFixed(2));
+
+            // Logika validasi soft-limit luas panen dan warna font merah
+            if (totalPanen > maxPanen) {
+                $('#totalPanen').addClass('text-danger').removeClass('text-dark');
+                $('.panen-input').addClass('text-danger fw-bold');
+                $('#keteranganPanenWrapper').slideDown();
+                $('#keteranganSelisihPanen').prop('required', true);
+            } else {
+                $('#totalPanen').removeClass('text-danger').addClass('text-dark');
+                $('.panen-input').removeClass('text-danger fw-bold');
+                $('#keteranganPanenWrapper').slideUp();
+                $('#keteranganSelisihPanen').prop('required', false);
+            }
         };
 
-        $(document).on('input', '.lahan-input, .tanam-input, .panen-input, .prodv-input', calculateTotals);
+        $(document).on('input', '.tanam-input, .panen-input, .prodv-input', calculateTotals);
         
         calculateTotals();
     });

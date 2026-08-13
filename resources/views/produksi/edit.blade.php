@@ -88,7 +88,6 @@
                         <thead class="table-light">
                             <tr class="text-center small">
                                 <th width="15%">Minggu Ke-</th>
-                                <th>Luas Lahan (Ha)</th>
                                 <th>Luas Tanam (Ha)</th>
                                 <th>Luas Panen (Ha)</th>
                                 <th>Hasil Produksi</th>
@@ -101,13 +100,6 @@
                                 @endphp
                                 <tr>
                                     <td class="text-center fw-bold text-secondary">Minggu {{ $i + 1 }}</td>
-                                    <td>
-                                        <input type="number" step="0.01" min="0" 
-                                               name="komoditas[{{ $laporan->komoditas_id }}][mingguans][{{ $i }}][luas_lahan]" 
-                                               value="{{ $detail['luas_lahan'] ?? '' }}"
-                                               class="form-control lahan-input text-end" 
-                                               placeholder="0.00" required>
-                                    </td>
                                     <td>
                                         <input type="number" step="0.01" min="0" 
                                                name="komoditas[{{ $laporan->komoditas_id }}][mingguans][{{ $i }}][luas_tanam]" 
@@ -134,9 +126,6 @@
                             <!-- Baris Akumulasi Bulanan -->
                             <tr class="table-warning fw-bold small">
                                 <td class="text-center">Total Bulanan</td>
-                                <td>
-                                    <input type="text" id="totalLahan" class="form-control-plaintext text-end fw-bold" readonly value="{{ number_format($laporan->luas_lahan, 2, ',', '.') }} Ha">
-                                </td>
                                 <td>
                                     <input type="text" id="totalTanam" class="form-control-plaintext text-end fw-bold" readonly value="{{ number_format($laporan->luas_tanam, 2, ',', '.') }} Ha">
                                 </td>
@@ -178,6 +167,16 @@
             @endif
         </div>
 
+        <!-- Wrapper Keterangan Selisih Luas Panen (Dinamis) -->
+        <div class="card border border-warning rounded-3 p-4 bg-light shadow-sm mb-4" id="keteranganPanenWrapper" style="display: none;">
+            <div class="d-flex align-items-center mb-3">
+                <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-2"></i>
+                <h6 class="fw-bold mb-0 text-dark">Keterangan Alasan Selisih Luas Panen</h6>
+            </div>
+            <p class="text-muted small">Total Luas Panen yang diinputkan melebihi batas maksimal kapasitas tanam pada durasi panen komoditas ini sebelumnya (Maksimal: <strong class="text-danger">{{ number_format($maxPanen ?? 0, 2) }} Ha</strong>). Mohon berikan keterangan alasan mengapa hal ini bisa terjadi.</p>
+            <textarea name="komoditas[{{ $laporan->komoditas_id }}][keterangan_selisih_panen]" id="keteranganSelisihPanen" class="form-control" rows="3" placeholder="Masukkan alasan selisih luas panen di sini...">{{ $laporan->keterangan_selisih_panen }}</textarea>
+        </div>
+
         <div class="d-flex gap-2">
             <button type="submit" class="btn btn-success px-4 rounded-3">Perbarui Laporan</button>
             <a href="{{ route('tanaman-pangan.index') }}" class="btn btn-light px-4 rounded-3 text-secondary border">Batal</a>
@@ -189,16 +188,14 @@
 @section('scripts')
 <script>
     $(document).ready(function() {
+        const maxPanen = parseFloat("{{ $maxPanen ?? 0 }}") || 0;
+
         @if($isTanamanPangan)
             const calculateTotals = () => {
-                let totalLahan = 0;
                 let totalTanam = 0;
                 let totalPanen = 0;
                 let totalProduksi = 0;
 
-                $('.lahan-input').each(function() {
-                    totalLahan += parseFloat($(this).val()) || 0;
-                });
                 $('.tanam-input').each(function() {
                     totalTanam += parseFloat($(this).val()) || 0;
                 });
@@ -209,13 +206,27 @@
                     totalProduksi += parseFloat($(this).val()) || 0;
                 });
 
-                $('#totalLahan').val(totalLahan.toFixed(2) + ' Ha');
                 $('#totalTanam').val(totalTanam.toFixed(2) + ' Ha');
                 $('#totalPanen').val(totalPanen.toFixed(2) + ' Ha');
                 $('#totalProduksi').val(totalProduksi.toFixed(2));
+
+                // Logika validasi soft-limit luas panen dan warna font merah
+                if (totalPanen > maxPanen) {
+                    $('#totalPanen').addClass('text-danger').removeClass('text-dark');
+                    $('.panen-input').addClass('text-danger fw-bold');
+                    $('#keteranganPanenWrapper').slideDown();
+                    $('#keteranganSelisihPanen').prop('required', true);
+                } else {
+                    $('#totalPanen').removeClass('text-danger').addClass('text-dark');
+                    $('.panen-input').removeClass('text-danger fw-bold');
+                    $('#keteranganPanenWrapper').slideUp();
+                    $('#keteranganSelisihPanen').prop('required', false);
+                }
             };
 
-            $(document).on('input', '.lahan-input, .tanam-input, .panen-input, .produksi-input', calculateTotals);
+            $(document).on('input', '.tanam-input, .panen-input, .produksi-input', calculateTotals);
+            
+            calculateTotals();
         @endif
     });
 </script>

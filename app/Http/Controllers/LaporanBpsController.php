@@ -65,9 +65,10 @@ class LaporanBpsController extends Controller
         if ($kecamatanId) $query->where('kecamatan_id', $kecamatanId);
 
         $grouped = $this->groupPanganData($query->get());
-        $pdf = Pdf::loadView('laporan-bps.pdf.tanaman-pangan', compact('grouped', 'tahun'))
+        $kecamatanNama = $kecamatanId ? Kecamatan::find($kecamatanId)?->nama : null;
+        $pdf = Pdf::loadView('laporan-bps.pdf.tanaman-pangan', compact('grouped', 'tahun', 'kecamatanNama'))
                   ->setPaper('a4', 'landscape');
-        return $pdf->download("laporan-bps-tanaman-pangan-{$tahun}.pdf");
+        return $pdf->stream("laporan-tanaman-pangan-{$tahun}.pdf");
     }
 
     public function tanamanPanganExcel(Request $request)
@@ -154,7 +155,7 @@ class LaporanBpsController extends Controller
 
         $pdf = Pdf::loadView('laporan-bps.pdf.hortikultura', compact('laporans', 'tahun', 'formType'))
                   ->setPaper('a4', 'landscape');
-        return $pdf->download("laporan-bps-hortikultura-{$tahun}.pdf");
+        return $pdf->stream("laporan-bps-hortikultura-{$tahun}.pdf");
     }
 
     public function hortikulturaExcel(Request $request)
@@ -218,7 +219,7 @@ class LaporanBpsController extends Controller
 
         $pdf = Pdf::loadView('laporan-bps.pdf.perkebunan', compact('laporans', 'tahun', 'semesters', 'bulan'))
                   ->setPaper('a4', 'landscape');
-        return $pdf->download("laporan-bps-perkebunan-{$tahun}.pdf");
+        return $pdf->stream("laporan-bps-perkebunan-{$tahun}.pdf");
     }
 
     public function perkebunanExcel(Request $request)
@@ -252,11 +253,11 @@ class LaporanBpsController extends Controller
         $currentYear = intval(date('Y'));
         $years       = range($currentYear, $currentYear - 9);
 
-        [$alsintans, $infrastrukturs, $pupukData, $jenisPupuks] = $this->buildPspData($tab, $tahun, $kecamatanId);
+        [$alsintans, $infrastrukturs, $pupukData, $jenisPupuks, $pemanfaatanLaporans, $infrastrukturLaporans, $realokasiAlsintans, $realokasiPupuks] = $this->buildPspData($tab, $tahun, $kecamatanId);
 
         return view('laporan-bps.psp', compact(
             'tab', 'tahun', 'kecamatans', 'kecamatanId', 'years',
-            'alsintans', 'infrastrukturs', 'pupukData', 'jenisPupuks'
+            'alsintans', 'infrastrukturs', 'pupukData', 'jenisPupuks', 'pemanfaatanLaporans', 'infrastrukturLaporans', 'realokasiAlsintans', 'realokasiPupuks'
         ));
     }
 
@@ -266,13 +267,13 @@ class LaporanBpsController extends Controller
         $tab         = $request->get('tab', 'alsintan');
         $kecamatanId = $request->get('kecamatan_id');
 
-        [$alsintans, $infrastrukturs, $pupukData, $jenisPupuks] = $this->buildPspData($tab, $tahun, $kecamatanId);
+        [$alsintans, $infrastrukturs, $pupukData, $jenisPupuks, $pemanfaatanLaporans, $infrastrukturLaporans, $realokasiAlsintans, $realokasiPupuks] = $this->buildPspData($tab, $tahun, $kecamatanId);
 
         $pdf = Pdf::loadView("laporan-bps.pdf.psp-{$tab}", compact(
-            'alsintans', 'infrastrukturs', 'pupukData', 'jenisPupuks', 'tahun'
+            'alsintans', 'infrastrukturs', 'pupukData', 'jenisPupuks', 'pemanfaatanLaporans', 'infrastrukturLaporans', 'realokasiAlsintans', 'realokasiPupuks', 'tahun'
         ))->setPaper('a4', 'landscape');
 
-        return $pdf->download("laporan-bps-psp-{$tab}-{$tahun}.pdf");
+        return $pdf->stream("laporan-bps-psp-{$tab}-{$tahun}.pdf");
     }
 
     public function pspExcel(Request $request)
@@ -281,11 +282,15 @@ class LaporanBpsController extends Controller
         $tab         = $request->get('tab', 'alsintan');
         $kecamatanId = $request->get('kecamatan_id');
 
-        [$alsintans, $infrastrukturs, $pupukData, $jenisPupuks] = $this->buildPspData($tab, $tahun, $kecamatanId);
+        [$alsintans, $infrastrukturs, $pupukData, $jenisPupuks, $pemanfaatanLaporans, $infrastrukturLaporans, $realokasiAlsintans, $realokasiPupuks] = $this->buildPspData($tab, $tahun, $kecamatanId);
         $data = match ($tab) {
             'alsintan'      => $alsintans,
             'infrastruktur' => $infrastrukturs,
             'pupuk'         => $pupukData,
+            'pemanfaatan'   => $pemanfaatanLaporans,
+            'laporan-infrastruktur' => $infrastrukturLaporans,
+            'realokasi-alsintan'    => $realokasiAlsintans,
+            'realokasi-pupuk'       => $realokasiPupuks,
             default         => collect(),
         };
 
@@ -297,7 +302,7 @@ class LaporanBpsController extends Controller
 
     private function buildPspData(string $tab, int $tahun, ?int $kecamatanId): array
     {
-        $alsintans = $infrastrukturs = $pupukData = $jenisPupuks = collect();
+        $alsintans = $infrastrukturs = $pupukData = $jenisPupuks = $pemanfaatanLaporans = $infrastrukturLaporans = $realokasiAlsintans = $realokasiPupuks = collect();
 
         if ($tab === 'alsintan') {
             $q = Alsintan::with(['jenisAlat', 'kelompokTani.desa.kecamatan'])->where('tahun_bantuan', $tahun);
@@ -306,10 +311,48 @@ class LaporanBpsController extends Controller
             }
             $alsintans = $q->get();
 
+        } elseif ($tab === 'pemanfaatan') {
+            $q = \App\Models\LaporanPemanfaatanAlsintan::with(['alsintan.jenisAlat', 'alsintan.kelompokTani.desa.kecamatan'])
+                ->whereYear('tanggal', $tahun);
+            if ($kecamatanId) {
+                $q->whereHas('alsintan.kelompokTani.desa.kecamatan', fn($q2) => $q2->where('id', $kecamatanId));
+            }
+            $pemanfaatanLaporans = $q->get();
         } elseif ($tab === 'infrastruktur') {
             $q = Infrastruktur::with(['kecamatan', 'desa', 'kelompokTani'])->where('tahun_anggaran', $tahun);
             if ($kecamatanId) $q->where('kecamatan_id', $kecamatanId);
             $infrastrukturs = $q->get();
+
+        } elseif ($tab === 'laporan-infrastruktur') {
+            $q = \App\Models\InfrastrukturLaporan::whereHas('infrastruktur')
+                ->with(['infrastruktur.kecamatan', 'infrastruktur.desa'])
+                ->whereYear('tanggal_laporan', $tahun);
+            if ($kecamatanId) {
+                $q->whereHas('infrastruktur', fn($q2) => $q2->where('kecamatan_id', $kecamatanId));
+            }
+            $infrastrukturLaporans = $q->get();
+
+        } elseif ($tab === 'realokasi-alsintan') {
+            $q = \App\Models\RealokasiAlsintan::with(['alsintan.jenisAlat', 'kelompokTaniAsal.desa.kecamatan', 'kelompokTaniTujuan.desa.kecamatan'])
+                ->whereYear('tanggal_realokasi', $tahun);
+            if ($kecamatanId) {
+                $q->where(function($sub) use ($kecamatanId) {
+                    $sub->whereHas('kelompokTaniAsal.desa.kecamatan', fn($q2) => $q2->where('id', $kecamatanId))
+                       ->orWhereHas('kelompokTaniTujuan.desa.kecamatan', fn($q2) => $q2->where('id', $kecamatanId));
+                });
+            }
+            $realokasiAlsintans = $q->get();
+
+        } elseif ($tab === 'realokasi-pupuk') {
+            $q = \App\Models\PengalihanPupuk::with(['jenis', 'kecamatanAsal', 'kecamatanTujuan'])
+                ->where('tahun', $tahun);
+            if ($kecamatanId) {
+                $q->where(function($sub) use ($kecamatanId) {
+                    $sub->where('kecamatan_asal_id', $kecamatanId)
+                       ->orWhere('kecamatan_tujuan_id', $kecamatanId);
+                });
+            }
+            $realokasiPupuks = $q->get();
 
         } elseif ($tab === 'pupuk') {
             $jenisPupuks   = JenisPupuk::orderBy('nama')->get();
@@ -344,7 +387,7 @@ class LaporanBpsController extends Controller
             $pupukData = collect($rows);
         }
 
-        return [$alsintans, $infrastrukturs, $pupukData, $jenisPupuks];
+        return [$alsintans, $infrastrukturs, $pupukData, $jenisPupuks, $pemanfaatanLaporans, $infrastrukturLaporans, $realokasiAlsintans, $realokasiPupuks];
     }
 
     // ─── PENYULUHAN ───────────────────────────────────────────────────────────
@@ -373,7 +416,7 @@ class LaporanBpsController extends Controller
             'penyuluhs', 'gapoktans', 'kelompokTanis', 'petanis', 'bpps'
         ))->setPaper('a4', 'landscape');
 
-        return $pdf->download("laporan-bps-penyuluhan-{$tab}.pdf");
+        return $pdf->stream("laporan-bps-penyuluhan-{$tab}.pdf");
     }
 
     public function penyuluhanExcel(Request $request)

@@ -67,6 +67,206 @@
         </div>
     </div>
 
+    {{-- Pemantauan Terperinci Wilayah (Bupati View) --}}
+    <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 16px;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold text-dark mb-1" style="font-size:1.25rem;"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Eksplorasi Detail Wilayah (Bupati & Kadis View)</h5>
+                <p class="small text-muted mb-0">Pilih kecamatan untuk memantau sebaran bantuan, irigasi, dan kinerja produksi desa secara spesifik.</p>
+            </div>
+            
+            <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0 justify-content-md-end align-items-center">
+                <div style="min-width: 200px;">
+                    <label class="form-label text-secondary small fw-bold mb-1">Pilih Kecamatan</label>
+                    <select id="selectKecamatanDashboard" class="form-select border rounded-3 text-dark">
+                        <option value="">-- Pilih Kecamatan --</option>
+                        <option value="all">Semua Kecamatan</option>
+                        @foreach($listKecamatan as $kec)
+                            <option value="{{ $kec->id }}">{{ $kec->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div style="min-width: 150px;">
+                    <label class="form-label text-secondary small fw-bold mb-1">Pilih Tahun</label>
+                    <select id="selectTahunDashboard" class="form-select border rounded-3 text-dark">
+                        <option value="">-- Semua Tahun --</option>
+                        @foreach($yearsList as $yr)
+                            <option value="{{ $yr }}">{{ $yr }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="regionalDetailWrapper" style="display: none;">
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border text-center">
+                        <span class="text-secondary small fw-semibold">Total Luas Lahan Panen</span>
+                        <h3 class="fw-bold text-primary mb-0 mt-1" id="kecLuasPanen">0 Ha</h3>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border text-center">
+                        <span class="text-secondary small fw-semibold">Total Hasil Produksi</span>
+                        <h3 class="fw-bold text-success mb-0 mt-1" id="kecProduksi">0 Ton</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3 Column Breakdown (CoinCap Style) -->
+            <div class="row g-3 mb-4">
+                <!-- Tanaman Pangan -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm p-3 bg-white h-100" style="border-radius: 12px; border: 1px solid #e2e8f0; border-top: 4px solid #2563eb !important;">
+                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-egg-fill text-primary me-2"></i>Tanaman Pangan</h6>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light text-secondary small fw-bold">
+                                    <tr>
+                                        <th style="width: 35px;">#</th>
+                                        <th>Komoditas</th>
+                                        <th class="text-end">Luas</th>
+                                        <th class="text-end">Hasil</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyKecPangan" class="small fw-semibold">
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Tidak ada data</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hortikultura -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm p-3 bg-white h-100" style="border-radius: 12px; border: 1px solid #e2e8f0; border-top: 4px solid #16a34a !important;">
+                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-flower1 text-success me-2"></i>Hortikultura</h6>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light text-secondary small fw-bold">
+                                    <tr>
+                                        <th style="width: 35px;">#</th>
+                                        <th>Komoditas</th>
+                                        <th class="text-end">Luas</th>
+                                        <th class="text-end">Hasil</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyKecHorti" class="small fw-semibold">
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Tidak ada data</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Perkebunan -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm p-3 bg-white h-100" style="border-radius: 12px; border: 1px solid #e2e8f0; border-top: 4px solid #d97706 !important;">
+                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-tree-fill text-warning me-2"></i>Perkebunan</h6>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light text-secondary small fw-bold">
+                                    <tr>
+                                        <th style="width: 35px;">#</th>
+                                        <th>Komoditas</th>
+                                        <th class="text-end">Luas</th>
+                                        <th class="text-end">Hasil</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyKecPerkebunan" class="small fw-semibold">
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Tidak ada data</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs mb-3" id="regionalTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold text-secondary" id="benih-tab" data-bs-toggle="tab" data-bs-target="#benih-pane" type="button" role="tab" aria-controls="benih-pane" aria-selected="true"><i class="bi bi-gift-fill me-1"></i> Bantuan Benih/Bibit</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-secondary" id="alsintan-tab" data-bs-toggle="tab" data-bs-target="#alsintan-pane" type="button" role="tab" aria-controls="alsintan-pane" aria-selected="false"><i class="bi bi-truck-flatbed me-1"></i> Bantuan Alsintan</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-secondary" id="infra-tab" data-bs-toggle="tab" data-bs-target="#infra-pane" type="button" role="tab" aria-controls="infra-pane" aria-selected="false"><i class="bi bi-water me-1"></i> Irigasi & Infrastruktur</button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="regionalTabContent">
+                <!-- Benih & Bibit -->
+                <div class="tab-pane fade show active" id="benih-pane" role="tabpanel" aria-labelledby="benih-tab">
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>Desa</th>
+                                    <th>Kelompok Tani</th>
+                                    <th>Kategori Bantuan</th>
+                                    <th class="text-end">Jumlah</th>
+                                    <th>Sumber Dana</th>
+                                    <th class="text-center">Tahun</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyKecBenih" class="small">
+                                <tr><td colspan="6" class="text-center text-muted">Tidak ada data bantuan</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Alsintan -->
+                <div class="tab-pane fade" id="alsintan-pane" role="tabpanel" aria-labelledby="alsintan-tab">
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>Desa</th>
+                                    <th>Kelompok Tani</th>
+                                    <th>Jenis Alat</th>
+                                    <th>Nama/Merek</th>
+                                    <th class="text-center">Kondisi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyKecAlsintan" class="small">
+                                <tr><td colspan="5" class="text-center text-muted">Tidak ada data alsintan</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Irigasi -->
+                <div class="tab-pane fade" id="infra-pane" role="tabpanel" aria-labelledby="infra-tab">
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>Desa</th>
+                                    <th>Kelompok Tani</th>
+                                    <th>Nama Proyek</th>
+                                    <th>Volume</th>
+                                    <th class="text-end">Nilai Anggaran</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyKecInfra" class="small">
+                                <tr><td colspan="6" class="text-center text-muted">Tidak ada data pembangunan irigasi</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="regionalDetailEmpty" class="text-center py-4 text-muted">
+            <i class="bi bi-info-circle fs-3 d-block mb-2 text-secondary"></i> Silakan pilih kecamatan terlebih dahulu untuk menampilkan detail.
+        </div>
+    </div>
+
     {{-- Grafik Fluktuasi Produksi 5 Tahun dengan Filter --}}
     <div class="row mb-4">
         <div class="col-12">
@@ -106,7 +306,7 @@
                                     @endforeach
                                 </tr>
                             </thead>
-                            <tbody id="tbodyTrendRincian" class="fs-6 fw-semibold">
+                            <tbody id="tbodyTrendRincian" class="fs-6">
                                 {{-- Diisi dinamis lewat JS --}}
                             </tbody>
                         </table>
@@ -243,6 +443,7 @@ $(document).ready(function() {
     const defaultPangan = {!! json_encode($panganTrend) !!};
     const defaultHorti = {!! json_encode($hortiTrend) !!};
     const defaultBun = {!! json_encode($bunTrend) !!};
+    const rincianKategoriKomoditas = {!! json_encode($rincianKategoriKomoditas) !!};
 
     const trendCtx = document.getElementById('chartTrend5Tahun').getContext('2d');
 
@@ -252,19 +453,62 @@ $(document).ready(function() {
     }
 
     // Fungsi Render Tabel Rincian
-    function renderRincianTable(rows) {
+    function renderRincianTable(data, isFiltered = false) {
         const tbody = $('#tbodyTrendRincian');
         tbody.empty();
 
-        rows.forEach(row => {
-            let cells = `<tr><td class="text-start fw-bold text-dark">${row.label}</td>`;
-            row.data.forEach(val => {
-                cells += `<td>${formatNumber(val)}</td>`;
+        if (isFiltered) {
+            // Filtered view (single commodity)
+            data.forEach(row => {
+                let cells = `<tr><td class="text-start fw-bold text-dark ps-3">${row.label}</td>`;
+                row.data.forEach(val => {
+                    cells += `<td class="fw-normal text-dark">${formatNumber(val)}</td>`;
+                });
+                cells += `</tr>`;
+                tbody.append(cells);
             });
-            cells += `</tr>`;
-            tbody.append(cells);
-        });
+        } else {
+            // Default view (nested category -> commodities)
+            data.forEach(cat => {
+                let catRowId = `cat-row-${cat.id}`;
+                let cells = `<tr class="category-row cursor-pointer" data-target="${catRowId}" style="background-color: #f8f9fa;">
+                    <td class="text-start fw-bold text-dark">
+                        <i class="bi bi-chevron-right me-2 text-primary" style="transition: transform 0.2s;"></i>${cat.nama}
+                    </td>`;
+                cat.trend.forEach(val => {
+                    cells += `<td class="text-success fw-bold">${formatNumber(val)}</td>`;
+                });
+                cells += `</tr>`;
+                tbody.append(cells);
+
+                cat.komoditas.forEach(kom => {
+                    let komCells = `<tr class="${catRowId} d-none" style="background-color: #ffffff;">
+                        <td class="text-start text-secondary ps-4 fw-normal" style="font-size: 0.9rem;">
+                            — ${kom.nama}
+                        </td>`;
+                    kom.trend.forEach(val => {
+                        komCells += `<td class="fw-normal text-muted">${formatNumber(val)}</td>`;
+                    });
+                    komCells += `</tr>`;
+                    tbody.append(komCells);
+                });
+            });
+        }
     }
+
+    // Event listener untuk collapse / expand kategori
+    $(document).on('click', '.category-row', function() {
+        const targetClass = $(this).data('target');
+        const icon = $(this).find('i');
+        
+        $(`.${targetClass}`).toggleClass('d-none');
+        
+        if (icon.hasClass('bi-chevron-right')) {
+            icon.removeClass('bi-chevron-right').addClass('bi-chevron-down');
+        } else {
+            icon.removeClass('bi-chevron-down').addClass('bi-chevron-right');
+        }
+    });
 
     // Fungsi menggambar Chart
     function renderLineChart(labels, datasets) {
@@ -332,11 +576,7 @@ $(document).ready(function() {
     renderLineChart(years, defaultDatasets);
 
     // Render tabel pertama kali
-    renderRincianTable([
-        { label: 'Tanaman Pangan (Ton)', data: defaultPangan },
-        { label: 'Hortikultura (Kw/Kg)', data: defaultHorti },
-        { label: 'Perkebunan (Kg)', data: defaultBun }
-    ]);
+    renderRincianTable(rincianKategoriKomoditas, false);
 
     // Event handler ketika filter komoditas berubah
     $('#filterKomoditas').on('change', function() {
@@ -345,11 +585,7 @@ $(document).ready(function() {
         if (komoditasId === '') {
             // Tampilkan kembali default
             renderLineChart(years, defaultDatasets);
-            renderRincianTable([
-                { label: 'Tanaman Pangan (Ton)', data: defaultPangan },
-                { label: 'Hortikultura (Kw/Kg)', data: defaultHorti },
-                { label: 'Perkebunan (Kg)', data: defaultBun }
-            ]);
+            renderRincianTable(rincianKategoriKomoditas, false);
             return;
         }
 
@@ -378,7 +614,7 @@ $(document).ready(function() {
                 // Update Tabel Rincian
                 renderRincianTable([
                     { label: komoditasName, data: response.data }
-                ]);
+                ], true);
             },
             error: function() {
                 alert('Gagal mengambil data tren komoditas.');
@@ -388,6 +624,198 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Bupati View Regional Drilldown Logic
+    const selectKecDashboard = $('#selectKecamatanDashboard');
+    const selectTahunDashboard = $('#selectTahunDashboard');
+    const regionalWrapper = $('#regionalDetailWrapper');
+    const regionalEmpty = $('#regionalDetailEmpty');
+
+    function updateRegionalDetail() {
+        const kecId = selectKecDashboard.val();
+        const tahun = selectTahunDashboard.val();
+
+        if (!kecId) {
+            regionalWrapper.hide();
+            regionalEmpty.show();
+            return;
+        }
+
+        regionalEmpty.hide();
+        regionalWrapper.show();
+
+        // Luas Lahan & Produksi
+        $('#kecLuasPanen').text('Memuat...');
+        $('#kecProduksi').text('Memuat...');
+
+        // Tables loading state
+        const loadingRow = `<tr><td colspan="10" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Memuat...</td></tr>`;
+        $('#tbodyKecPangan').html(loadingRow);
+        $('#tbodyKecHorti').html(loadingRow);
+        $('#tbodyKecPerkebunan').html(loadingRow);
+        $('#tbodyKecBenih').html(loadingRow);
+        $('#tbodyKecAlsintan').html(loadingRow);
+        $('#tbodyKecInfra').html(loadingRow);
+
+        $.ajax({
+            url: "{{ route('dashboard.regional-detail') }}",
+            type: 'GET',
+            data: { 
+                kecamatan_id: kecId,
+                tahun: tahun
+            },
+            dataType: 'json',
+            success: function(res) {
+                // Update header stats
+                $('#kecLuasPanen').text(res.luas_panen.toLocaleString('id-ID') + ' Ha');
+                $('#kecProduksi').text(res.produksi.toLocaleString('id-ID') + ' Ton');
+
+                // Render CoinCap Breakdown per subsector
+                const tbodyPangan = $('#tbodyKecPangan');
+                const tbodyHorti = $('#tbodyKecHorti');
+                const tbodyPerkebunan = $('#tbodyKecPerkebunan');
+                
+                tbodyPangan.empty();
+                tbodyHorti.empty();
+                tbodyPerkebunan.empty();
+
+                let panganIdx = 1, hortiIdx = 1, kebunIdx = 1;
+                let panganRows = '', hortiRows = '', kebunRows = '';
+
+                res.production_breakdown.forEach((item) => {
+                    const rowHtml = `
+                        <tr>
+                            <td class="text-muted">{IDX}</td>
+                            <td class="fw-bold text-dark">${item.komoditas_nama}</td>
+                            <td class="text-end">${parseFloat(item.total_luas).toLocaleString('id-ID', {maximumFractionDigits: 1})} Ha</td>
+                            <td class="text-end text-success fw-bold">${parseFloat(item.total_produksi).toLocaleString('id-ID', {maximumFractionDigits: 1})}</td>
+                        </tr>
+                    `;
+
+                    if (item.kategori_nama.includes('Pangan')) {
+                        panganRows += rowHtml.replace('{IDX}', panganIdx++);
+                    } else if (item.kategori_nama.includes('Horti')) {
+                        hortiRows += rowHtml.replace('{IDX}', hortiIdx++);
+                    } else {
+                        kebunRows += rowHtml.replace('{IDX}', kebunIdx++);
+                    }
+                });
+
+                tbodyPangan.html(panganRows || '<tr><td colspan="4" class="text-center text-muted py-3">Tidak ada data</td></tr>');
+                tbodyHorti.html(hortiRows || '<tr><td colspan="4" class="text-center text-muted py-3">Tidak ada data</td></tr>');
+                tbodyPerkebunan.html(kebunRows || '<tr><td colspan="4" class="text-center text-muted py-3">Tidak ada data</td></tr>');
+
+                // 1. Render Benih & Bibit
+                const tbodyBenih = $('#tbodyKecBenih');
+                tbodyBenih.empty();
+                
+                let benihRows = '';
+                const benihList = [];
+                res.benih_pangans.forEach(item => {
+                    benihList.push({
+                        desa: item.desa_nama,
+                        poktan: item.poktan_nama,
+                        kategori: 'Benih ' + item.komoditas_nama + (item.varietas_nama ? ` (${item.varietas_nama})` : ''),
+                        jumlah: item.jumlah_bantuan.toLocaleString('id-ID') + ' ' + item.satuan,
+                        sumber: item.sumber_dana,
+                        tahun: item.tahun_bantuan
+                    });
+                });
+                res.bibit_hortis.forEach(item => {
+                    benihList.push({
+                        desa: item.desa_nama,
+                        poktan: item.poktan_nama,
+                        kategori: 'Bibit ' + item.komoditas_nama,
+                        jumlah: item.jumlah_bantuan.toLocaleString('id-ID') + ' ' + item.satuan,
+                        sumber: item.sumber_dana,
+                        tahun: item.tahun_bantuan
+                    });
+                });
+                res.bibit_perkebunans.forEach(item => {
+                    benihList.push({
+                        desa: item.desa_nama,
+                        poktan: item.poktan_nama,
+                        kategori: 'Bibit ' + item.komoditas_nama,
+                        jumlah: item.jumlah_bantuan.toLocaleString('id-ID') + ' ' + item.satuan,
+                        sumber: item.sumber_dana,
+                        tahun: item.tahun_bantuan
+                    });
+                });
+
+                if (benihList.length === 0) {
+                    tbodyBenih.html('<tr><td colspan="6" class="text-center text-muted">Tidak ada data bantuan</td></tr>');
+                } else {
+                    benihList.forEach(item => {
+                        benihRows += `
+                            <tr>
+                                <td class="fw-bold text-dark">${item.desa}</td>
+                                <td>${item.poktan}</td>
+                                <td><span class="badge bg-light text-dark border">${item.kategori}</span></td>
+                                <td class="text-end fw-bold text-success">${item.jumlah}</td>
+                                <td>${item.sumber}</td>
+                                <td class="text-center">${item.tahun}</td>
+                            </tr>
+                        `;
+                    });
+                    tbodyBenih.html(benihRows);
+                }
+
+                // 2. Render Alsintan
+                const tbodyAlsintan = $('#tbodyKecAlsintan');
+                tbodyAlsintan.empty();
+                let alsintanRows = '';
+                if (res.alsintans.length === 0) {
+                    tbodyAlsintan.html('<tr><td colspan="5" class="text-center text-muted">Tidak ada data alsintan</td></tr>');
+                } else {
+                    res.alsintans.forEach(item => {
+                        let badgeClass = 'bg-success';
+                        if (item.kondisi === 'Rusak Ringan') badgeClass = 'bg-warning text-dark';
+                        if (item.kondisi === 'Rusak Berat') badgeClass = 'bg-danger';
+
+                        alsintanRows += `
+                            <tr>
+                                <td class="fw-bold text-dark">${item.desa_nama}</td>
+                                <td>${item.poktan_nama}</td>
+                                <td>${item.jenis_alat_nama || '-'}</td>
+                                <td>${item.nama_alat} (${item.merek})</td>
+                                <td class="text-center"><span class="badge ${badgeClass} px-2 py-1">${item.kondisi}</span></td>
+                            </tr>
+                        `;
+                    });
+                    tbodyAlsintan.html(alsintanRows);
+                }
+
+                // 3. Render Irigasi
+                const tbodyInfra = $('#tbodyKecInfra');
+                tbodyInfra.empty();
+                let infraRows = '';
+                if (res.infrastrukturs.length === 0) {
+                    tbodyInfra.html('<tr><td colspan="6" class="text-center text-muted">Tidak ada data pembangunan irigasi</td></tr>');
+                } else {
+                    res.infrastrukturs.forEach(item => {
+                        infraRows += `
+                            <tr>
+                                <td class="fw-bold text-dark">${item.desa_nama || '-'}</td>
+                                <td>${item.poktan_nama || 'Umum'}</td>
+                                <td>${item.nama_proyek} (${item.jenis_infrastruktur})</td>
+                                <td>${item.volume} ${item.satuan}</td>
+                                <td class="text-end fw-bold text-primary">Rp ${parseFloat(item.nilai_anggaran).toLocaleString('id-ID')}</td>
+                                <td class="text-center"><span class="badge bg-light text-secondary border">${item.status_pembangunan}</span></td>
+                            </tr>
+                        `;
+                    });
+                    tbodyInfra.html(infraRows);
+                }
+            },
+            error: function() {
+                regionalWrapper.hide();
+                regionalEmpty.show().html('<i class="bi bi-exclamation-triangle-fill text-danger fs-3 d-block mb-2"></i> Gagal memuat data detail wilayah');
+            }
+        });
+    }
+
+    selectKecDashboard.on('change', updateRegionalDetail);
+    selectTahunDashboard.on('change', updateRegionalDetail);
 });
 </script>
 

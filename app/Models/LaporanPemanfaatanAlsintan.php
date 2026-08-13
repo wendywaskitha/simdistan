@@ -14,7 +14,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'luas_lahan',
     'waktu_pengerjaan',
     'biaya_pengolahan',
-    'hour_meter'
+    'hour_meter',
+    'hour_meter_awal',
+    'hour_meter_akhir',
+    'foto_hm_awal',
+    'foto_hm_akhir',
+    'foto_dokumentasi',
+    'tanggal_mulai',
+    'tanggal_selesai'
 ])]
 class LaporanPemanfaatanAlsintan extends Model
 {
@@ -27,6 +34,10 @@ class LaporanPemanfaatanAlsintan extends Model
         'luas_lahan' => 'decimal:2',
         'biaya_pengolahan' => 'decimal:2',
         'hour_meter' => 'decimal:2',
+        'hour_meter_awal' => 'decimal:2',
+        'hour_meter_akhir' => 'decimal:2',
+        'tanggal_mulai' => 'date',
+        'tanggal_selesai' => 'date',
     ];
 
     /**

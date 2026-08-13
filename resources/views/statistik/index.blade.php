@@ -28,7 +28,7 @@
         </div>
         <div class="col-md-3">
             <label for="filterTahun" class="form-label fw-semibold text-secondary small">Tahun Analisis</label>
-            <input type="number" id="filterTahun" class="form-control border-0 shadow-sm rounded-3" value="{{ date('Y') }}" min="2020" max="2050">
+            <input type="number" id="filterTahun" class="form-control border-0 shadow-sm rounded-3" value="{{ $tahunDefault }}" min="2020" max="2050">
         </div>
         <div class="col-md-2">
             <button type="button" id="btnFilter" class="btn btn-primary w-100 rounded-3 shadow-sm">
@@ -64,15 +64,44 @@
         {{-- Tanaman Pangan --}}
         <div class="tab-pane fade show active" id="pangan-pane" role="tabpanel">
             <div class="row g-4">
+                <!-- Row 1: Grafik Utama -->
                 <div class="col-md-6">
                     <div class="card border border-light-subtle rounded-3 p-3 bg-white shadow-sm">
-                        <h6 class="fw-bold mb-3 text-secondary">Grafik Luas Panen Tanaman Pangan (Ha)</h6>
-                        <div style="height: 320px;"><canvas id="chartPanganLuas"></canvas></div>
+                        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-calendar-check me-2"></i>Komparasi Luas Tanam vs Luas Panen (Ha)</h6>
+                        <div style="height: 320px;"><canvas id="chartPanganTanamPanen"></canvas></div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="card border border-light-subtle rounded-3 p-3 bg-white shadow-sm">
-                        <h6 class="fw-bold mb-3 text-secondary">Grafik Total Produksi Tanaman Pangan (Ton)</h6>
+                        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-graph-up me-2"></i>Tren Produksi &amp; Luas Panen Bulanan</h6>
+                        <div style="height: 320px;"><canvas id="chartPanganTrenBulanan"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Distribusi & Target -->
+                <div class="col-md-6">
+                    <div class="card border border-light-subtle rounded-3 p-3 bg-white shadow-sm">
+                        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-pie-chart me-2"></i>Persentase Kontribusi Produksi per Komoditas</h6>
+                        <div style="height: 320px;"><canvas id="chartPanganDonutProduksi"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border border-light-subtle rounded-3 p-3 bg-white shadow-sm">
+                        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-bullseye me-2"></i>Realisasi Luas Tanam vs Target Tanam (Ha)</h6>
+                        <div style="height: 320px;"><canvas id="chartPanganTargetTanam"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Row 3: Kerusakan Lahan & Produktivitas -->
+                <div class="col-md-6">
+                    <div class="card border border-light-subtle rounded-3 p-3 bg-white shadow-sm">
+                        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-x-circle me-2"></i>Luas Lahan Rusak/Puso per Komoditas (Ha)</h6>
+                        <div style="height: 320px;"><canvas id="chartPanganLahanRusak"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border border-light-subtle rounded-3 p-3 bg-white shadow-sm">
+                        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-activity me-2"></i>Grafik Total Produksi Tanaman Pangan (Ton)</h6>
                         <div style="height: 320px;"><canvas id="chartPanganProduksi"></canvas></div>
                     </div>
                 </div>
@@ -166,26 +195,36 @@ $(document).ready(function() {
             charts[canvasId].destroy();
         }
         const ctx = document.getElementById(canvasId).getContext('2d');
+        
+        let datasets = [];
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0].datasets) {
+            // Jika payload data berupa custom dataset terstruktur
+            datasets = data[0].datasets;
+        } else {
+            // Mode dataset tunggal biasa
+            datasets = [{
+                label: label,
+                data: data,
+                backgroundColor: color,
+                borderColor: typeof color === 'string' ? color.replace('0.6', '1') : color,
+                borderWidth: 1.5,
+                borderRadius: type === 'bar' ? 6 : 0
+            }];
+        }
+
         charts[canvasId] = new Chart(ctx, {
             type: type,
             data: {
                 labels: labels,
-                datasets: [{
-                    label: label,
-                    data: data,
-                    backgroundColor: color,
-                    borderColor: typeof color === 'string' ? color.replace('0.6', '1') : color,
-                    borderWidth: 1.5,
-                    borderRadius: 6
-                }]
+                datasets: datasets
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: type === 'pie' || type === 'doughnut' }
+                    legend: { display: type === 'pie' || type === 'doughnut' || datasets.length > 1 }
                 },
-                scales: type === 'bar' ? {
+                scales: (type === 'bar' || type === 'line') ? {
                     y: { beginAtZero: true }
                 } : {}
             }
@@ -201,15 +240,126 @@ $(document).ready(function() {
             type: 'GET',
             data: { kecamatan_id: kecId, tahun: tahun },
             success: function(res) {
-                // Pangan
-                const panganLabels = res.pangan.map(item => item.komoditas_nama);
-                const panganLuas = res.pangan.map(item => parseFloat(item.total_luas_panen || 0));
-                const panganProd = res.pangan.map(item => parseFloat(item.total_produksi || 0));
+                // 1. DATA PANGAN (Detail lengkap)
+                const pangan = res.pangan.stats || [];
+                const panganLabels = pangan.map(item => item.komoditas_nama);
+                const panganTanam = pangan.map(item => parseFloat(item.total_luas_tanam || 0));
+                const panganPanen = pangan.map(item => parseFloat(item.total_luas_panen || 0));
+                const panganRusak = pangan.map(item => parseFloat(item.total_luas_rusak || 0));
+                const panganProd = pangan.map(item => parseFloat(item.total_produksi || 0));
 
-                initChart('chartPanganLuas', 'bar', panganLabels, panganLuas, 'Luas Panen (Ha)', 'rgba(59, 130, 246, 0.6)');
-                initChart('chartPanganProduksi', 'bar', panganLabels, panganProd, 'Produksi (Ton)', 'rgba(37, 99, 235, 0.6)');
+                // A. Grafik Komparasi Luas Tanam vs Luas Panen (Bar Grouped)
+                const tanamPanenDataset = [{
+                    datasets: [
+                        {
+                            label: 'Luas Tanam (Ha)',
+                            data: panganTanam,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Luas Panen (Ha)',
+                            data: panganPanen,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }
+                    ]
+                }];
+                initChart('chartPanganTanamPanen', 'bar', panganLabels, tanamPanenDataset);
 
-                // Horti
+                // B. Grafik Tren Bulanan (Jan - Des) (Line Chart Multi Axis)
+                const bulanan = res.pangan.bulanan || [];
+                const blnLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                const blnTanam = Array(12).fill(0);
+                const blnPanen = Array(12).fill(0);
+                const blnProd = Array(12).fill(0);
+                
+                bulanan.forEach(item => {
+                    const idx = parseInt(item.bulan) - 1;
+                    if (idx >= 0 && idx < 12) {
+                        blnTanam[idx] = parseFloat(item.total_tanam || 0);
+                        blnPanen[idx] = parseFloat(item.total_panen || 0);
+                        blnProd[idx] = parseFloat(item.total_produksi || 0);
+                    }
+                });
+
+                const trenBulananDataset = [{
+                    datasets: [
+                        {
+                            label: 'Realisasi Produksi (Ton)',
+                            data: blnProd,
+                            type: 'line',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Luas Panen (Ha)',
+                            data: blnPanen,
+                            type: 'bar',
+                            backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }
+                    ]
+                }];
+                initChart('chartPanganTrenBulanan', 'bar', blnLabels, trenBulananDataset);
+
+                // C. Donut Chart Kontribusi Produksi
+                const donutColors = [
+                    'rgba(255, 99, 132, 0.6)',
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 206, 86, 0.6)',
+                    'rgba(75, 192, 192, 0.6)',
+                    'rgba(153, 102, 255, 0.6)',
+                    'rgba(255, 159, 64, 0.6)'
+                ];
+                initChart('chartPanganDonutProduksi', 'doughnut', panganLabels, panganProd, 'Produksi (Ton)', donutColors);
+
+                // D. Target vs Realisasi Tanam
+                const targets = res.pangan.target || [];
+                const targetValues = panganLabels.map(lbl => {
+                    const match = targets.find(t => t.komoditas_nama === lbl);
+                    return match ? parseFloat(match.total_target || 0) : 0;
+                });
+
+                const targetDataset = [{
+                    datasets: [
+                        {
+                            label: 'Target Tanam (Ha)',
+                            data: targetValues,
+                            backgroundColor: 'rgba(255, 206, 86, 0.6)',
+                            borderColor: 'rgba(255, 206, 86, 1)',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Realisasi Tanam (Ha)',
+                            data: panganTanam,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }
+                    ]
+                }];
+                initChart('chartPanganTargetTanam', 'bar', panganLabels, targetDataset);
+
+                // E. Luas Lahan Rusak
+                initChart('chartPanganLahanRusak', 'bar', panganLabels, panganRusak, 'Lahan Rusak/Puso (Ha)', 'rgba(220, 53, 69, 0.6)');
+
+                // F. Total Produksi
+                initChart('chartPanganProduksi', 'bar', panganLabels, panganProd, 'Total Produksi (Ton)', 'rgba(40, 167, 69, 0.6)');
+
+
+                // 2. DATA HORTI (Tetap)
                 const hortiLabels = res.horti.map(item => item.komoditas_nama);
                 const hortiLuas = res.horti.map(item => parseFloat(item.total_luas_panen || 0));
                 const hortiProd = res.horti.map(item => parseFloat(item.total_produksi || 0));
@@ -217,7 +367,7 @@ $(document).ready(function() {
                 initChart('chartHortiLuas', 'bar', hortiLabels, hortiLuas, 'Luas Panen (Ha)', 'rgba(236, 72, 153, 0.6)');
                 initChart('chartHortiProduksi', 'bar', hortiLabels, hortiProd, 'Produksi', 'rgba(219, 39, 119, 0.6)');
 
-                // Bun
+                // 3. DATA PERKEBUNAN (Tetap)
                 const bunLabels = res.bun.map(item => item.komoditas_nama);
                 const bunLuas = res.bun.map(item => parseFloat(item.total_luas_panen || 0));
                 const bunProd = res.bun.map(item => parseFloat(item.total_produksi || 0));

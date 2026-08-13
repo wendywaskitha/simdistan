@@ -152,15 +152,134 @@ class AlsintanController extends Controller
             ->with('success', 'Data Penerima Bantuan Alsintan berhasil dihapus.');
     }
 
-    /**
-     * Store a newly created utilization report in storage.
-     */
     public function storeLaporan(LaporanPemanfaatanRequest $request, int $id): RedirectResponse
     {
-        $this->alsintanService->tambahLaporanPemanfaatan($id, $request->validated());
+        $alsintan = $this->alsintanService->getAlsintanById($id);
+        $isTractorOrCombine = false;
+        if ($alsintan && $alsintan->jenisAlat) {
+            $isTractorOrCombine = in_array(strtolower($alsintan->jenisAlat->nama), [
+                'traktor roda 2',
+                'traktor roda 4',
+                'combine harvester'
+            ]);
+        }
+
+        $data = $request->validated();
+
+        if ($isTractorOrCombine) {
+            if ($request->hasFile('foto_hm_awal')) {
+                $data['foto_hm_awal'] = $request->file('foto_hm_awal')->store('laporan_alsintan', 'public');
+            }
+            if ($request->hasFile('foto_hm_akhir')) {
+                $data['foto_hm_akhir'] = $request->file('foto_hm_akhir')->store('laporan_alsintan', 'public');
+            }
+            $data['hour_meter'] = $data['hour_meter_akhir'];
+            $data['tanggal_mulai'] = null;
+            $data['tanggal_selesai'] = null;
+        } else {
+            $data['tanggal'] = $data['tanggal_mulai'];
+            $data['hour_meter'] = null;
+            $data['hour_meter_awal'] = null;
+            $data['hour_meter_akhir'] = null;
+            $data['foto_hm_awal'] = null;
+            $data['foto_hm_akhir'] = null;
+        }
+
+        if ($request->hasFile('foto_dokumentasi')) {
+            $data['foto_dokumentasi'] = $request->file('foto_dokumentasi')->store('laporan_alsintan', 'public');
+        }
+
+        $this->alsintanService->tambahLaporanPemanfaatan($id, $data);
 
         return redirect()->route('alsintans.show', $id)
             ->with('success', 'Laporan Pemanfaatan Alsintan berhasil ditambahkan.');
+    }
+
+    public function updateLaporan(LaporanPemanfaatanRequest $request, int $laporanId): RedirectResponse
+    {
+        $laporan = $this->alsintanService->getLaporanById($laporanId);
+        if (!$laporan) {
+            abort(404);
+        }
+
+        $alsintan = $laporan->alsintan ?? $this->alsintanService->getAlsintanById($laporan->alsintan_id);
+        $isTractorOrCombine = false;
+        if ($alsintan && $alsintan->jenisAlat) {
+            $isTractorOrCombine = in_array(strtolower($alsintan->jenisAlat->nama), [
+                'traktor roda 2',
+                'traktor roda 4',
+                'combine harvester'
+            ]);
+        }
+
+        $data = $request->validated();
+
+        if ($isTractorOrCombine) {
+            if ($request->hasFile('foto_hm_awal')) {
+                if ($laporan->foto_hm_awal) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($laporan->foto_hm_awal);
+                }
+                $data['foto_hm_awal'] = $request->file('foto_hm_awal')->store('laporan_alsintan', 'public');
+            }
+            if ($request->hasFile('foto_hm_akhir')) {
+                if ($laporan->foto_hm_akhir) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($laporan->foto_hm_akhir);
+                }
+                $data['foto_hm_akhir'] = $request->file('foto_hm_akhir')->store('laporan_alsintan', 'public');
+            }
+            $data['hour_meter'] = $data['hour_meter_akhir'];
+            $data['tanggal_mulai'] = null;
+            $data['tanggal_selesai'] = null;
+        } else {
+            // Delete old HM photos if they exist
+            if ($laporan->foto_hm_awal) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($laporan->foto_hm_awal);
+            }
+            if ($laporan->foto_hm_akhir) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($laporan->foto_hm_akhir);
+            }
+            $data['tanggal'] = $data['tanggal_mulai'];
+            $data['hour_meter'] = null;
+            $data['hour_meter_awal'] = null;
+            $data['hour_meter_akhir'] = null;
+            $data['foto_hm_awal'] = null;
+            $data['foto_hm_akhir'] = null;
+        }
+
+        if ($request->hasFile('foto_dokumentasi')) {
+            if ($laporan->foto_dokumentasi) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($laporan->foto_dokumentasi);
+            }
+            $data['foto_dokumentasi'] = $request->file('foto_dokumentasi')->store('laporan_alsintan', 'public');
+        }
+
+        $this->alsintanService->updateLaporan($laporanId, $data);
+
+        return redirect()->route('alsintans.show', $laporan->alsintan_id)
+            ->with('success', 'Laporan Pemanfaatan Alsintan berhasil diperbarui.');
+    }
+
+    public function destroyLaporan(int $laporanId): RedirectResponse
+    {
+        $laporan = $this->alsintanService->getLaporanById($laporanId);
+        if (!$laporan) {
+            abort(404);
+        }
+
+        if ($laporan->foto_hm_awal) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($laporan->foto_hm_awal);
+        }
+        if ($laporan->foto_hm_akhir) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($laporan->foto_hm_akhir);
+        }
+        if ($laporan->foto_dokumentasi) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($laporan->foto_dokumentasi);
+        }
+
+        $this->alsintanService->deleteLaporan($laporanId);
+
+        return redirect()->route('alsintans.show', $laporan->alsintan_id)
+            ->with('success', 'Laporan Pemanfaatan Alsintan berhasil dihapus.');
     }
 
     /**

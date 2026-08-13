@@ -107,4 +107,28 @@ class AlsintanService
             ]);
         });
     }
+
+    /**
+     * Get Laporan Pemanfaatan by ID.
+     */
+    public function getLaporanById(int $laporanId): ?LaporanPemanfaatanAlsintan
+    {
+        return $this->laporanRepository->find($laporanId);
+    }
+
+    /**
+     * Update Laporan Pemanfaatan by ID.
+     */
+    public function updateLaporan(int $laporanId, array $data): bool
+    {
+        return $this->laporanRepository->update($laporanId, $data);
+    }
+
+    /**
+     * Delete Laporan Pemanfaatan by ID.
+     */
+    public function deleteLaporan(int $laporanId): bool
+    {
+        return $this->laporanRepository->delete($laporanId);
+    }
 }

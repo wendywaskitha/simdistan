@@ -9,6 +9,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\PetaniImport;
+use App\Exports\PetaniTemplateExport;
 
 class PetaniController extends Controller
 {
@@ -132,5 +135,46 @@ class PetaniController extends Controller
 
         return redirect()->route('petanis.index')
             ->with('success', 'Data Petani berhasil dihapus.');
+    }
+
+    /**
+     * Import data from excel.
+     */
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls'
+        ], [
+            'file.required' => 'File Excel wajib diunggah.',
+            'file.mimes' => 'Format file harus .xlsx atau .xls'
+        ]);
+
+        try {
+            Excel::import(new PetaniImport, $request->file('file'));
+            return redirect()->route('petanis.index')
+                ->with('success', 'Data Petani berhasil diimport.');
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+            foreach ($failures as $failure) {
+                $errors[] = 'Baris ' . $failure->row() . ': ' . implode(', ', $failure->errors());
+            }
+            return redirect()->route('petanis.index')
+                ->withErrors($errors);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('petanis.index')
+                ->withErrors($e->errors());
+        } catch (\Exception $e) {
+            return redirect()->route('petanis.index')
+                ->with('error', 'Gagal mengimport data: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download import template.
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new PetaniTemplateExport, 'template_import_petani.xlsx');
     }
 }

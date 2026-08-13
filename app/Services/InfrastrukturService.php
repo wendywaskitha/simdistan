@@ -89,15 +89,44 @@ class InfrastrukturService
             $data['geojson'] = $this->parseKmlToGeoJson($kmlContent);
         }
 
-        return $this->infrastrukturRepository->update($id, $data);
+        return DB::transaction(function () use ($id, $data) {
+            $infrastruktur = $this->infrastrukturRepository->find($id);
+            $oldStatus = $infrastruktur ? $infrastruktur->status_pembangunan : null;
+            $newStatus = $data['status_pembangunan'] ?? null;
+
+            if ($oldStatus && $newStatus && $oldStatus !== $newStatus) {
+                $progres = 0.00;
+                $kondisi = 'Baik';
+                $keterangan = "Status utama diubah dari {$oldStatus} menjadi {$newStatus}.";
+
+                if ($newStatus === 'Selesai') {
+                    $progres = 100.00;
+                } elseif ($newStatus === 'Konstruksi') {
+                    $progres = 50.00;
+                } elseif ($newStatus === 'Rusak') {
+                    $progres = 100.00;
+                    $kondisi = 'Rusak Berat';
+                }
+
+                $this->laporanRepository->create([
+                    'infrastruktur_id' => $id,
+                    'tanggal_laporan' => now()->format('Y-m-d'),
+                    'kondisi' => $kondisi,
+                    'progres_fisik' => $progres,
+                    'keterangan' => $keterangan
+                ]);
+            }
+
+            return $this->infrastrukturRepository->update($id, $data);
+        });
     }
 
-    /**
-     * Delete an Infrastruktur.
-     */
     public function deleteInfrastruktur(int $id): bool
     {
-        return $this->infrastrukturRepository->delete($id);
+        return DB::transaction(function () use ($id) {
+            \App\Models\InfrastrukturLaporan::where('infrastruktur_id', $id)->delete();
+            return $this->infrastrukturRepository->delete($id);
+        });
     }
 
     /**

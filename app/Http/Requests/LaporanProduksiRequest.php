@@ -40,7 +40,6 @@ class LaporanProduksiRequest extends FormRequest
             $rules['komoditas.*.mingguans.*.luas_panen'] = ['required', 'numeric', 'min:0'];
             $rules['komoditas.*.mingguans.*.produktivitas'] = ['required', 'numeric', 'min:0'];
             $rules['komoditas.*.mingguans.*.produksi'] = ['required', 'numeric', 'min:0'];
-            $rules['komoditas.*.mingguans.*.luas_lahan'] = ['required', 'numeric', 'min:0'];
         } else {
             $rules['komoditas.*.luas_tanam'] = ['nullable', 'numeric', 'min:0'];
             $rules['komoditas.*.luas_rusak']  = ['nullable', 'numeric', 'min:0'];
@@ -170,10 +169,13 @@ class LaporanProduksiRequest extends FormRequest
 
                 // has_duration_limit = true berarti komoditas ini punya durasi panen yang ditetapkan
                 if (!empty($result['has_duration_limit']) && $incomingPanen > $result['max_panen']) {
-                    $validator->errors()->add(
-                        "komoditas.{$komoditasId}.luas_panen",
-                        "Luas Panen untuk komoditas {$result['komoditas_nama']} tidak boleh melebihi Luas Tanam pada {$result['durasi']} bulan sebelumnya (Maks: " . number_format($result['max_panen'], 2) . " Ha, input: " . number_format($incomingPanen, 2) . " Ha)."
-                    );
+                    $keterangan = $data['keterangan_selisih_panen'] ?? null;
+                    if (empty(trim($keterangan))) {
+                        $validator->errors()->add(
+                            "komoditas.{$komoditasId}.keterangan_selisih_panen",
+                            "Keterangan alasan selisih wajib diisi untuk komoditas {$result['komoditas_nama']} karena Luas Panen (" . number_format($incomingPanen, 2) . " Ha) melebihi Luas Tanam pada {$result['durasi']} bulan sebelumnya (Maks: " . number_format($result['max_panen'], 2) . " Ha)."
+                        );
+                    }
                 }
             }
         });

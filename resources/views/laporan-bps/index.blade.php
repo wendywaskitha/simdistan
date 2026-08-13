@@ -1,13 +1,13 @@
 @extends('layouts.admin')
-@section('title', 'Laporan BPS')
+@section('title', 'Laporan')
 
 @section('content')
-<x-breadcrumb :items="[['label' => 'Laporan BPS']]" />
+<x-breadcrumb :items="[['label'=>'Laporan']]" />
 
 <div class="card custom-card border-0 p-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h5 class="fw-bold mb-1"><i class="bi bi-file-earmark-bar-graph me-2 text-success"></i>Laporan Data untuk BPS</h5>
+            <h5 class="fw-bold mb-1"><i class="bi bi-file-earmark-bar-graph me-2 text-success"></i>Laporan Data Pertanian</h5>
             <p class="text-muted small mb-0">Pilih bidang untuk melihat dan mengekspor laporan lengkap.</p>
         </div>
     </div>

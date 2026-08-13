@@ -18,7 +18,9 @@ class StatistikController extends Controller
     public function index(): View
     {
         $kecamatans = Kecamatan::all();
-        return view('statistik.index', compact('kecamatans'));
+        // Tahun terbaru yang ada data — fallback ke tahun sekarang
+        $tahunDefault = LaporanProduksi::max('tahun') ?? intval(date('Y'));
+        return view('statistik.index', compact('kecamatans', 'tahunDefault'));
     }
 
     /**
@@ -33,8 +35,57 @@ class StatistikController extends Controller
         $kategoriHorti = KategoriKomoditas::where('nama', 'LIKE', '%Hortikultura%')->first();
         $kategoriBun = KategoriKomoditas::where('nama', 'LIKE', '%Perkebunan%')->first();
 
+        // 1. Pangan Detail Data
+        $panganData = [];
+        if ($kategoriPangan) {
+            // Stats utama per komoditas
+            $panganStats = DB::table('laporan_produksis')
+                ->join('komoditas', 'laporan_produksis.komoditas_id', '=', 'komoditas.id')
+                ->select(
+                    'komoditas.nama as komoditas_nama',
+                    DB::raw('SUM(laporan_produksis.luas_tanam) as total_luas_tanam'),
+                    DB::raw('SUM(laporan_produksis.luas_panen) as total_luas_panen'),
+                    DB::raw('SUM(laporan_produksis.luas_rusak) as total_luas_rusak'),
+                    DB::raw('SUM(laporan_produksis.produksi) as total_produksi')
+                )
+                ->where('laporan_produksis.kategori_komoditas_id', $kategoriPangan->id)
+                ->where('laporan_produksis.tahun', $tahun)
+                ->whereNull('laporan_produksis.deleted_at');
+            
+            if ($kecamatanId) {
+                $panganStats->where('laporan_produksis.kecamatan_id', $kecamatanId);
+            }
+            $panganData['stats'] = $panganStats->groupBy('komoditas.nama')->get();
+
+            // Bulanan tren
+            $panganBulanan = DB::table('laporan_produksis')
+                ->select(
+                    'bulan',
+                    DB::raw('SUM(luas_tanam) as total_tanam'),
+                    DB::raw('SUM(luas_panen) as total_panen'),
+                    DB::raw('SUM(produksi) as total_produksi')
+                )
+                ->where('kategori_komoditas_id', $kategoriPangan->id)
+                ->where('tahun', $tahun)
+                ->whereNull('deleted_at');
+            if ($kecamatanId) {
+                $panganBulanan->where('kecamatan_id', $kecamatanId);
+            }
+            $panganData['bulanan'] = $panganBulanan->groupBy('bulan')->orderBy('bulan')->get();
+
+            // Target vs Realisasi Tanam per Komoditas
+            $targetQuery = DB::table('target_tanams')
+                ->join('komoditas', 'target_tanams.komoditas_id', '=', 'komoditas.id')
+                ->select('komoditas.nama as komoditas_nama', DB::raw('SUM(target_tanams.target) as total_target'))
+                ->where('target_tanams.tahun', $tahun);
+            if ($kecamatanId) {
+                $targetQuery->where('target_tanams.kecamatan_id', $kecamatanId);
+            }
+            $panganData['target'] = $targetQuery->groupBy('komoditas.nama')->get();
+        }
+
         $data = [
-            'pangan' => $this->getKategoriStats($kategoriPangan?->id, $tahun, $kecamatanId),
+            'pangan' => $panganData,
             'horti'  => $this->getKategoriStats($kategoriHorti?->id, $tahun, $kecamatanId),
             'bun'    => $this->getKategoriStats($kategoriBun?->id, $tahun, $kecamatanId),
         ];

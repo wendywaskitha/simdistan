@@ -1,13 +1,13 @@
 @extends('layouts.admin')
-@section('title', 'Laporan BPS – PSP')
+@section('title', 'Laporan – PSP')
 
 @section('content')
-<x-breadcrumb :items="[['label'=>'Laporan BPS','url'=>route('laporan-bps.index')],['label'=>'PSP']]" />
+<x-breadcrumb :items="[['label'=>'Laporan','url'=>route('laporan-bps.index')],['label'=>'PSP']]" />
 
 <div class="card custom-card border-0 p-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h5 class="fw-bold mb-1"><i class="bi bi-truck-flatbed me-2 text-purple"></i>Laporan BPS — Prasarana & Sarana (PSP) {{ $tahun }}</h5>
+            <h5 class="fw-bold mb-1"><i class="bi bi-truck-flatbed me-2 text-purple"></i>Laporan — Prasarana &amp; Sarana (PSP) {{ $tahun }}</h5>
             <p class="text-muted small mb-0">Alsintan, Infrastruktur & Irigasi, Distribusi Pupuk.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
@@ -44,12 +44,24 @@
 
     {{-- Nav Tabs --}}
     <ul class="nav nav-tabs mb-4">
-        @foreach(['alsintan'=>'Bantuan Alsintan','infrastruktur'=>'Infrastruktur & Irigasi','pupuk'=>'Distribusi Pupuk'] as $key => $label)
+        @foreach([
+            'alsintan'=>'Bantuan Alsintan',
+            'pemanfaatan'=>'Laporan Pemanfaatan Alsintan',
+            'realokasi-alsintan'=>'Realokasi Alsintan',
+            'infrastruktur'=>'Infrastruktur & Irigasi',
+            'laporan-infrastruktur'=>'Laporan Kondisi Infrastruktur',
+            'pupuk'=>'Distribusi Pupuk',
+            'realokasi-pupuk'=>'Realokasi Pupuk'
+        ] as $key => $label)
         <li class="nav-item">
             <a class="nav-link fw-semibold {{ $tab === $key ? 'active text-success fw-bold' : 'text-secondary' }}"
                href="{{ route('laporan-bps.psp', array_merge(request()->query(), ['tab'=>$key])) }}">
                 @if($key==='alsintan')<i class="bi bi-truck-flatbed me-1"></i>
                 @elseif($key==='infrastruktur')<i class="bi bi-water me-1"></i>
+                @elseif($key==='laporan-infrastruktur')<i class="bi bi-chat-left-text me-1"></i>
+                @elseif($key==='realokasi-alsintan')<i class="bi bi-arrow-left-right me-1"></i>
+                @elseif($key==='realokasi-pupuk')<i class="bi bi-arrow-repeat me-1"></i>
+                @elseif($key==='pemanfaatan')<i class="bi bi-activity me-1"></i>
                 @else<i class="bi bi-droplet-half me-1"></i>@endif
                 {{ $label }}
             </a>
@@ -140,8 +152,71 @@
         </div>
         @endif
 
+    {{-- ─── LAPORAN KONDISI INFRASTRUKTUR ─── --}}
+    @elseif($tab === 'laporan-infrastruktur')
+        @if($infrastrukturLaporans->isEmpty())
+            <div class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Tidak ada data laporan kondisi.</div>
+        @else
+            @php
+                $byProyek = $infrastrukturLaporans->groupBy(function($lap) {
+                    return ($lap->infrastruktur?->nama_proyek ?? 'Proyek') . ' (' . ($lap->infrastruktur?->jenis_infrastruktur ?? '-') . ')';
+                });
+            @endphp
+
+            <h6 class="fw-bold mb-3 text-dark">Ringkasan Laporan Kondisi Proyek Infrastruktur</h6>
+            @foreach($byProyek as $namaProyek => $items)
+                <div class="mb-4">
+                    <div class="fw-semibold mb-2 text-dark" style="font-size: 0.95rem;">Proyek: {{ $namaProyek }}</div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle small" style="border-color: #dee2e6;">
+                            <thead>
+                                <tr style="background-color: #f8f9fa;">
+                                    <th class="text-center" style="width: 50px;">No</th>
+                                    <th>Detail Proyek & Kelompok Tani</th>
+                                    <th>Wilayah & Koordinat</th>
+                                    <th>Dimensi & Anggaran</th>
+                                    <th>Riwayat Kondisi & Catatan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($items as $i => $lap)
+                                <tr>
+                                    @if($loop->first)
+                                        <td class="text-center" rowspan="{{ $items->count() }}">{{ $loop->parent->iteration }}</td>
+                                        <td rowspan="{{ $items->count() }}">
+                                            <div class="fw-semibold">{{ $lap->infrastruktur?->nama_proyek ?? '-' }}</div>
+                                            <div class="text-muted small">Jenis: {{ $lap->infrastruktur?->jenis_infrastruktur ?? '-' }}</div>
+                                            <div class="text-muted small">Poktan: {{ $lap->infrastruktur?->kelompokTani?->nama ?? '-' }}</div>
+                                        </td>
+                                        <td rowspan="{{ $items->count() }}">
+                                            <div>Kec. {{ $lap->infrastruktur?->kecamatan?->nama ?? '-' }}</div>
+                                            <div class="text-muted small">Desa: {{ $lap->infrastruktur?->desa?->nama ?? '-' }}</div>
+                                            @if($lap->infrastruktur?->latitude && $lap->infrastruktur?->longitude)
+                                                <div class="text-muted small">Koord: {{ $lap->infrastruktur->latitude }}, {{ $lap->infrastruktur->longitude }}</div>
+                                            @endif
+                                        </td>
+                                        <td rowspan="{{ $items->count() }}">
+                                            <div>Volume: {{ $lap->infrastruktur?->volume ?? '-' }} {{ $lap->infrastruktur?->satuan ?? '' }}</div>
+                                            <div class="text-muted small">Anggaran: Rp {{ number_format($lap->infrastruktur?->nilai_anggaran ?? 0, 0, ',', '.') }}</div>
+                                            <div class="text-muted small">Sumber: {{ $lap->infrastruktur?->sumber_dana ?? '-' }} (TA: {{ $lap->infrastruktur?->tahun_anggaran ?? '-' }})</div>
+                                        </td>
+                                    @endif
+                                    <td>
+                                        <div>Tanggal Lapor: {{ \Carbon\Carbon::parse($lap->tanggal_laporan)->format('d-m-Y') }}</div>
+                                        <div class="text-muted small">Kondisi: <span class="fw-semibold">{{ $lap->kondisi }}</span> (Progres: {{ $lap->progres_fisik }}%)</div>
+                                        <div class="text-muted small">Catatan: {{ $lap->keterangan ?? '-' }}</div>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endforeach
+        @endif
+
     {{-- ─── PUPUK ─── --}}
-    @else
+    @elseif($tab === 'pupuk')
         @if($pupukData->isEmpty())
             <div class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Tidak ada data.</div>
         @else
@@ -177,6 +252,208 @@
                 </tfoot>
             </table>
         </div>
+        @endif
+
+    {{-- ─── REALOKASI ALSINTAN ─── --}}
+    @elseif($tab === 'realokasi-alsintan')
+        @if($realokasiAlsintans->isEmpty())
+            <div class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Tidak ada data realokasi alsintan.</div>
+        @else
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle small" style="border-color: #dee2e6;">
+                <thead>
+                    <tr style="background-color: #f8f9fa;">
+                        <th class="text-center" style="width: 50px;">No</th>
+                        <th>Alat Alsintan</th>
+                        <th>Kelompok Tani Asal</th>
+                        <th>Kecamatan Asal</th>
+                        <th>Kelompok Tani Tujuan</th>
+                        <th>Kecamatan Tujuan</th>
+                        <th>Tanggal Realokasi</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($realokasiAlsintans as $i => $row)
+                    <tr>
+                        <td class="text-center">{{ $i + 1 }}</td>
+                        <td>{{ $row->alsintan?->nama_alat ?? '-' }} ({{ $row->alsintan?->jenisAlat?->nama ?? '-' }})</td>
+                        <td>{{ $row->kelompokTaniAsal?->nama ?? '-' }}</td>
+                        <td>{{ $row->kelompokTaniAsal?->desa?->kecamatan?->nama ?? '-' }}</td>
+                        <td>{{ $row->kelompokTaniTujuan?->nama ?? '-' }}</td>
+                        <td>{{ $row->kelompokTaniTujuan?->desa?->kecamatan?->nama ?? '-' }}</td>
+                        <td>{{ $row->tanggal_realokasi ? $row->tanggal_realokasi->format('d/m/Y') : '-' }}</td>
+                        <td>{{ $row->keterangan ?? '-' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @endif
+
+    {{-- ─── REALOKASI PUPUK ─── --}}
+    @elseif($tab === 'realokasi-pupuk')
+        @if($realokasiPupuks->isEmpty())
+            <div class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Tidak ada data realokasi pupuk.</div>
+        @else
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle small" style="border-color: #dee2e6;">
+                <thead>
+                    <tr style="background-color: #f8f9fa;">
+                        <th class="text-center" style="width: 50px;">No</th>
+                        <th>Jenis Pupuk</th>
+                        <th>Kecamatan Asal</th>
+                        <th>Kecamatan Tujuan</th>
+                        <th class="text-end">Jumlah (Kg)</th>
+                        <th>Bulan / Tahun</th>
+                        <th>Nama SK / Dokumen</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php
+                        $bulans = [
+                            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+                            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                        ];
+                    @endphp
+                    @foreach($realokasiPupuks as $i => $row)
+                    <tr>
+                        <td class="text-center">{{ $i + 1 }}</td>
+                        <td class="fw-semibold">{{ $row->jenis?->nama ?? '-' }}</td>
+                        <td>{{ $row->kecamatanAsal?->nama ?? '-' }}</td>
+                        <td>{{ $row->kecamatanTujuan?->nama ?? '-' }}</td>
+                        <td class="text-end">{{ number_format($row->jumlah, 2, ',', '.') }} Kg</td>
+                        <td>{{ isset($bulans[$row->bulan]) ? $bulans[$row->bulan] : '-' }} {{ $row->tahun }}</td>
+                        <td>
+                            @if($row->file_path)
+                                <a href="{{ asset('storage/' . $row->file_path) }}" target="_blank">{{ $row->nama_sk ?? 'Dokumen SK' }}</a>
+                            @else
+                                {{ $row->nama_sk ?? '-' }}
+                            @endif
+                        </td>
+                        <td>{{ $row->keterangan ?? '-' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @endif
+
+    {{-- ─── PEMANFAATAN ALSINTAN ─── --}}
+    @elseif($tab === 'pemanfaatan')
+        @if($pemanfaatanLaporans->isEmpty())
+            <div class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Tidak ada data pemanfaatan.</div>
+        @else
+            @php
+                $byKelompok = $pemanfaatanLaporans->groupBy(function($lap) {
+                    return $lap->alsintan->kelompokTani?->nama ?? 'Tidak Ada Kelompok Tani';
+                });
+
+                $byAlat = $pemanfaatanLaporans->groupBy(function($lap) {
+                    return ($lap->alsintan->jenisAlat?->nama ?? 'Alat') . ' - ' . ($lap->alsintan->nama_alat ?? '');
+                });
+            @endphp
+
+            <h6 class="fw-bold mb-3 text-dark">A. Ringkasan Pemanfaatan Per Kelompok Tani</h6>
+            @foreach($byKelompok as $namaKelompok => $items)
+                <div class="mb-4">
+                    <div class="fw-semibold mb-2 text-dark" style="font-size: 0.95rem;">Kelompok Tani: {{ $namaKelompok }}</div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle small" style="border-color: #dee2e6;">
+                            <thead>
+                                <tr style="background-color: #f8f9fa;">
+                                    <th class="text-center" style="width: 50px;">No</th>
+                                    <th>Alat Alsintan</th>
+                                    <th>Kecamatan</th>
+                                    <th>Waktu Pemanfaatan / Tanggal</th>
+                                    <th class="text-end">Luas Lahan (Ha)</th>
+                                    <th class="text-center">Durasi Kerja (Jam)</th>
+                                    <th class="text-end">Biaya Pengolahan (Rp)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($items as $i => $lap)
+                                <tr>
+                                    <td class="text-center">{{ $i + 1 }}</td>
+                                    <td>{{ $lap->alsintan?->nama_alat ?? '-' }} ({{ $lap->alsintan?->jenisAlat?->nama ?? '-' }})</td>
+                                    <td>{{ $lap->alsintan?->kelompokTani?->desa?->kecamatan?->nama ?? '-' }}</td>
+                                    <td>
+                                        @if($lap->tanggal_mulai && $lap->tanggal_selesai)
+                                            {{ $lap->tanggal_mulai->format('d/m/Y') }} s/d {{ $lap->tanggal_selesai->format('d/m/Y') }}
+                                        @else
+                                            {{ $lap->tanggal ? $lap->tanggal->format('d/m/Y') : '-' }}
+                                        @endif
+                                    </td>
+                                    <td class="text-end">{{ number_format($lap->luas_lahan, 2, ',', '.') }} Ha</td>
+                                    <td class="text-center">{{ $lap->waktu_pengerjaan }} Jam</td>
+                                    <td class="text-end">Rp {{ number_format($lap->biaya_pengolahan, 2, ',', '.') }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr style="background-color: #ffffff; font-weight: bold;">
+                                    <td colspan="4" class="text-end">Total</td>
+                                    <td class="text-end">{{ number_format($items->sum('luas_lahan'), 2, ',', '.') }} Ha</td>
+                                    <td class="text-center">{{ $items->sum('waktu_pengerjaan') }} Jam</td>
+                                    <td class="text-end">Rp {{ number_format($items->sum('biaya_pengolahan'), 2, ',', '.') }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            @endforeach
+
+            <hr class="my-4" style="border-color: #dee2e6;">
+
+            <h6 class="fw-bold mb-3 text-dark">B. Ringkasan Pemanfaatan Per Alat Alsintan</h6>
+            @foreach($byAlat as $namaAlat => $items)
+                <div class="mb-4">
+                    <div class="fw-semibold mb-2 text-dark" style="font-size: 0.95rem;">Alat: {{ $namaAlat }}</div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle small" style="border-color: #dee2e6;">
+                            <thead>
+                                <tr style="background-color: #f8f9fa;">
+                                    <th class="text-center" style="width: 50px;">No</th>
+                                    <th>Kelompok Tani Pengguna</th>
+                                    <th>Kecamatan</th>
+                                    <th>Waktu Pemanfaatan / Tanggal</th>
+                                    <th class="text-end">Luas Lahan (Ha)</th>
+                                    <th class="text-center">Durasi Kerja (Jam)</th>
+                                    <th class="text-end">Biaya Pengolahan (Rp)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($items as $i => $lap)
+                                <tr>
+                                    <td class="text-center">{{ $i + 1 }}</td>
+                                    <td>{{ $lap->alsintan?->kelompokTani?->nama ?? '-' }}</td>
+                                    <td>{{ $lap->alsintan?->kelompokTani?->desa?->kecamatan?->nama ?? '-' }}</td>
+                                    <td>
+                                        @if($lap->tanggal_mulai && $lap->tanggal_selesai)
+                                            {{ $lap->tanggal_mulai->format('d/m/Y') }} s/d {{ $lap->tanggal_selesai->format('d/m/Y') }}
+                                        @else
+                                            {{ $lap->tanggal ? $lap->tanggal->format('d/m/Y') : '-' }}
+                                        @endif
+                                    </td>
+                                    <td class="text-end">{{ number_format($lap->luas_lahan, 2, ',', '.') }} Ha</td>
+                                    <td class="text-center">{{ $lap->waktu_pengerjaan }} Jam</td>
+                                    <td class="text-end">Rp {{ number_format($lap->biaya_pengolahan, 2, ',', '.') }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr style="background-color: #ffffff; font-weight: bold;">
+                                    <td colspan="4" class="text-end">Total</td>
+                                    <td class="text-end">{{ number_format($items->sum('luas_lahan'), 2, ',', '.') }} Ha</td>
+                                    <td class="text-center">{{ $items->sum('waktu_pengerjaan') }} Jam</td>
+                                    <td class="text-end">Rp {{ number_format($items->sum('biaya_pengolahan'), 2, ',', '.') }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            @endforeach
         @endif
     @endif
 </div>

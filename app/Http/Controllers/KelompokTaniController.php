@@ -12,6 +12,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\KelompokTaniImport;
+use App\Exports\KelompokTaniTemplateExport;
 
 class KelompokTaniController extends Controller
 {
@@ -258,6 +261,91 @@ class KelompokTaniController extends Controller
 
         return redirect()->route('kelompok-tanis.kelola-anggota', $kelompokTaniId)
             ->with('success', $petani->nama . ' berhasil ditetapkan sebagai Ketua Kelompok Tani.');
+    }
+
+    /**
+     * Import data from excel.
+     */
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls'
+        ], [
+            'file.required' => 'File Excel wajib diunggah.',
+            'file.mimes' => 'Format file harus .xlsx atau .xls'
+        ]);
+
+        try {
+            Excel::import(new KelompokTaniImport, $request->file('file'));
+            return redirect()->route('kelompok-tanis.index')
+                ->with('success', 'Data Kelompok Tani berhasil diimport.');
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+            foreach ($failures as $failure) {
+                $errors[] = 'Baris ' . $failure->row() . ': ' . implode(', ', $failure->errors());
+            }
+            return redirect()->route('kelompok-tanis.index')
+                ->withErrors($errors);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('kelompok-tanis.index')
+                ->withErrors($e->errors());
+        } catch (\Exception $e) {
+            return redirect()->route('kelompok-tanis.index')
+                ->with('error', 'Gagal mengimport data: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download import template.
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new KelompokTaniTemplateExport, 'template_import_kelompok_tani.xlsx');
+    }
+
+    /**
+     * Get petanis by Kelompok Tani ID (JSON).
+     */
+    public function getPetanis($id)
+    {
+        $petanis = Petani::where('kelompok_tani_id', $id)->get(['id', 'nama', 'nik']);
+        return response()->json($petanis);
+    }
+
+    /**
+     * Search Kelompok Tani (Select2 AJAX).
+     */
+    public function search(Request $request)
+    {
+        $search = $request->get('q');
+        $query = KelompokTani::with('desa');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('ketua', 'like', "%{$search}%")
+                  ->orWhereHas('desa', function ($qDesa) use ($search) {
+                      $qDesa->where('nama', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $poktans = $query->limit(15)->get();
+
+        $results = [];
+        foreach ($poktans as $p) {
+            $desaName = $p->desa ? $p->desa->nama : '-';
+            $ketuaName = $p->ketua ?: '-';
+            $results[] = [
+                'id' => $p->id,
+                'text' => "{$p->nama} - {$desaName} - {$ketuaName}"
+            ];
+        }
+
+        return response()->json([
+            'results' => $results
+        ]);
     }
 }
 

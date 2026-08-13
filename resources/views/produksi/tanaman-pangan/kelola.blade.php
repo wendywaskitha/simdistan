@@ -33,7 +33,6 @@
         <div class="col-md-3">
             <label for="filterIndikator" class="form-label fw-semibold text-secondary small">Pilih Indikator Tampilan</label>
             <select id="filterIndikator" class="form-select border-0 shadow-sm rounded-3" onchange="renderMatrix(this.value)">
-                <option value="luas_lahan">Luas Lahan (Ha)</option>
                 <option value="luas_tanam">Luas Tanam (Ha)</option>
                 <option value="luas_panen">Luas Panen (Ha)</option>
                 <option value="produksi">Hasil Produksi</option>
@@ -78,7 +77,9 @@
                                 data-lahan="{{ $lap ? floatval($lap->luas_lahan) : 0 }}" 
                                 data-tanam="{{ $lap ? floatval($lap->luas_tanam) : 0 }}" 
                                 data-panen="{{ $lap ? floatval($lap->luas_panen) : 0 }}" 
-                                data-produksi="{{ $lap ? floatval($lap->produksi) : 0 }}">
+                                data-produksi="{{ $lap ? floatval($lap->produksi) : 0 }}"
+                                data-max-panen="{{ $lap ? floatval($lap->max_panen) : 0 }}"
+                                data-keterangan="{{ $lap ? $lap->keterangan_selisih_panen : '' }}">
                                 0.00
                             </td>
                         @endforeach
@@ -120,6 +121,8 @@
                 const tanam = parseFloat($(this).attr('data-tanam')) || 0;
                 const panen = parseFloat($(this).attr('data-panen')) || 0;
                 const produksi = parseFloat($(this).attr('data-produksi')) || 0;
+                const maxPanen = parseFloat($(this).attr('data-max-panen')) || 0;
+                const keterangan = $(this).attr('data-keterangan') || '';
 
                 let displayVal = 0;
                 if (indicator === 'luas_lahan') {
@@ -132,10 +135,32 @@
                     displayVal = produksi;
                 }
 
-                $(this).text(displayVal > 0 ? displayVal.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-');
+                // Reset styling & tooltip
+                $(this).removeClass('text-danger fw-bold').removeAttr('data-bs-toggle').removeAttr('data-bs-html').removeAttr('title').removeAttr('data-bs-original-title');
+                if ($(this).data('bs-tooltip')) {
+                    $(this).tooltip('dispose');
+                }
+
+                let textVal = displayVal > 0 ? displayVal.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-';
+                
+                if (indicator === 'luas_panen' && displayVal > maxPanen) {
+                    $(this).addClass('text-danger fw-bold');
+                    const tooltipTitle = `Luas Panen (${displayVal.toFixed(2)} Ha) melebihi Luas Tanam historis (${maxPanen.toFixed(2)} Ha).<br/><b>Alasan:</b> ${keterangan || '-'}`;
+                    $(this).attr('data-bs-toggle', 'tooltip')
+                           .attr('data-bs-html', 'true')
+                           .attr('title', tooltipTitle);
+                    
+                    $(this).html(`${textVal} <i class="bi bi-exclamation-circle-fill text-danger small"></i>`);
+                } else {
+                    $(this).text(textVal);
+                }
+
                 totals[month] += displayVal;
             });
         });
+
+        // Re-initialize all tooltips
+        $('[data-bs-toggle="tooltip"]').tooltip();
 
         // Update total row in footer
         for (let m = 1; m <= 12; m++) {
@@ -145,13 +170,17 @@
     };
 
     $(document).ready(function() {
-        renderMatrix('luas_lahan'); // Render default
+        renderMatrix('luas_tanam'); // Render default
     });
 </script>
 <style>
     #matrixTable th, #matrixTable td {
         vertical-align: middle !important;
         font-size: 0.88rem !important;
+    }
+    .tooltip-inner {
+        text-align: left !important;
+        max-width: 250px !important;
     }
 </style>
 @endsection

@@ -17,6 +17,10 @@ use App\Http\Controllers\TanamanPanganController;
 use App\Http\Controllers\HortikulturaController;
 use App\Http\Controllers\PerkebunanController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PenerimaBantuanController;
+use App\Http\Controllers\BantuanBenihPanganController;
+use App\Http\Controllers\BantuanBibitHortiController;
+use App\Http\Controllers\BantuanBibitPerkebunanController;
 use Illuminate\Support\Facades\Route;
 
 // Rute Home / Pengalihan awal
@@ -35,6 +39,8 @@ Route::middleware('auth')->group(function () {
     
     // Dashboard Utama
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('kelompok-tanis/search', [KelompokTaniController::class, 'search'])->name('kelompok-tanis.search');
+    Route::get('kelompok-tanis/{id}/petanis', [KelompokTaniController::class, 'getPetanis'])->name('kelompok-tanis.petanis');
 
     // Super Admin Route Group (Users, Master Data)
     Route::middleware('role:Super Admin')->group(function () {
@@ -65,11 +71,20 @@ Route::middleware('auth')->group(function () {
         Route::post('kelompok-tanis/{id}/create-new-anggota', [KelompokTaniController::class, 'createNewAnggota'])->name('kelompok-tanis.anggota.create-new');
         Route::post('kelompok-tanis/{kelompokTaniId}/anggota/{petaniId}/set-ketua', [KelompokTaniController::class, 'setKetua'])->name('kelompok-tanis.anggota.set-ketua');
         Route::delete('kelompok-tanis/{kelompokTaniId}/anggota/{petaniId}', [KelompokTaniController::class, 'removeAnggota'])->name('kelompok-tanis.anggota.remove');
-        Route::resource('kelompok-tanis', KelompokTaniController::class);
+        Route::post('petanis/import', [PetaniController::class, 'import'])->name('petanis.import');
+        Route::get('petanis/template', [PetaniController::class, 'downloadTemplate'])->name('petanis.template');
         Route::resource('petanis', PetaniController::class);
+        
+        Route::post('kelompok-tanis/import', [KelompokTaniController::class, 'import'])->name('kelompok-tanis.import');
+        Route::get('kelompok-tanis/template', [KelompokTaniController::class, 'downloadTemplate'])->name('kelompok-tanis.template');
+        Route::resource('kelompok-tanis', KelompokTaniController::class);
+
+        Route::get('penerima-bantuan', [PenerimaBantuanController::class, 'index'])->name('penerima-bantuan.index');
+        Route::get('penerima-bantuan/data', [PenerimaBantuanController::class, 'getData'])->name('penerima-bantuan.data');
     });
 
     Route::get('dashboard/data-komoditas-trend', [\App\Http\Controllers\DashboardController::class, 'getKomoditasTrend'])->name('dashboard.komoditas-trend');
+    Route::get('dashboard/regional-detail', [\App\Http\Controllers\DashboardController::class, 'getRegionalDetail'])->name('dashboard.regional-detail');
     Route::get('leave-impersonate', [UserController::class, 'leaveImpersonate'])->name('users.leave-impersonate');
 
     // Rute Baru Tanaman Pangan
@@ -77,20 +92,26 @@ Route::middleware('auth')->group(function () {
         Route::get('tanaman-pangan/kelola', [TanamanPanganController::class, 'kelola'])->name('tanaman-pangan.kelola');
         Route::get('tanaman-pangan/input-mingguan', [TanamanPanganController::class, 'inputMingguan'])->name('tanaman-pangan.input-mingguan');
         Route::post('tanaman-pangan/simpan-mingguan', [TanamanPanganController::class, 'simpanMingguan'])->name('tanaman-pangan.simpan-mingguan');
+        Route::post('tanaman-pangan/simpan-lahan-baku', [TanamanPanganController::class, 'simpanLahanBaku'])->name('tanaman-pangan.simpan-lahan-baku');
+        Route::post('tanaman-pangan/simpan-target-tanam', [TanamanPanganController::class, 'simpanTargetTanam'])->name('tanaman-pangan.simpan-target-tanam');
+        Route::get('tanaman-pangan/cetak-rekap-ltt', [TanamanPanganController::class, 'cetakRekapLtt'])->name('tanaman-pangan.cetak-rekap-ltt');
         Route::get('tanaman-pangan/data-grafik', [TanamanPanganController::class, 'dataGrafik'])->name('tanaman-pangan.data-grafik');
         Route::resource('tanaman-pangan', TanamanPanganController::class);
+        Route::resource('bantuan-benih-pangan', BantuanBenihPanganController::class);
     });
 
     // Rute Baru Hortikultura
     Route::middleware('permission:akses hortikultura')->group(function () {
         Route::get('hortikultura/prev-data', [HortikulturaController::class, 'ajaxPrevData'])->name('hortikultura.prev-data');
         Route::resource('hortikultura', HortikulturaController::class);
+        Route::resource('bantuan-bibit-horti', BantuanBibitHortiController::class);
     });
 
     // Rute Baru Perkebunan
     Route::middleware('permission:akses perkebunan')->group(function () {
         Route::get('perkebunan/prev-data', [PerkebunanController::class, 'ajaxPrevData'])->name('perkebunan.prev-data');
         Route::resource('perkebunan', PerkebunanController::class);
+        Route::resource('bantuan-bibit-perkebunan', BantuanBibitPerkebunanController::class);
     });
 
     // Rute Fitur PSP (Prasarana & Sarana)
@@ -115,6 +136,8 @@ Route::middleware('auth')->group(function () {
 
         // Rute Fitur Alsintan (Bidang PSP)
         Route::post('alsintans/{id}/laporan', [\App\Http\Controllers\AlsintanController::class, 'storeLaporan'])->name('alsintans.laporan.store');
+        Route::put('alsintans/laporan/{laporanId}', [\App\Http\Controllers\AlsintanController::class, 'updateLaporan'])->name('alsintans.laporan.update');
+        Route::delete('alsintans/laporan/{laporanId}', [\App\Http\Controllers\AlsintanController::class, 'destroyLaporan'])->name('alsintans.laporan.destroy');
         Route::get('alsintans/{id}/realokasi', [\App\Http\Controllers\AlsintanController::class, 'realokasiForm'])->name('alsintans.realokasi.form');
         Route::post('alsintans/{id}/realokasi', [\App\Http\Controllers\AlsintanController::class, 'realokasiStore'])->name('alsintans.realokasi.store');
         Route::resource('alsintans', \App\Http\Controllers\AlsintanController::class);
